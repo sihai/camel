@@ -17,10 +17,10 @@ package com.opentech.camel.task;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.opentech.camel.task.exception.ResourceLimitException;
 import com.opentech.camel.task.executor.Executor;
 import com.opentech.camel.task.resource.TaskDomainResource;
 import com.opentech.camel.task.resource.TaskDomainResourceController;
-import com.opentech.camel.task.threading.exception.ResourceLimitException;
 
 /**
  * Runtime of task domain

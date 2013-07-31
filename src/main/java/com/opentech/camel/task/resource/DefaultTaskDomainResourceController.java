@@ -15,7 +15,7 @@
  */
 package com.opentech.camel.task.resource;
 
-import com.opentech.camel.task.threading.exception.ResourceLimitException;
+import com.opentech.camel.task.exception.ResourceLimitException;
 
 /**
  * Default resource controller of task domain

@@ -21,9 +21,9 @@ import java.util.concurrent.DelayQueue;
 import com.opentech.camel.task.Task;
 import com.opentech.camel.task.TaskDomain;
 import com.opentech.camel.task.TaskDomainRuntime;
+import com.opentech.camel.task.exception.ResourceLimitException;
+import com.opentech.camel.task.exception.TaskException;
 import com.opentech.camel.task.threading.ThreadPool;
-import com.opentech.camel.task.threading.exception.ResourceLimitException;
-import com.opentech.camel.task.threading.exception.TaskException;
 
 /**
  * 

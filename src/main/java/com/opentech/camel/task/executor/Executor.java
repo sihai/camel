@@ -16,8 +16,8 @@
 package com.opentech.camel.task.executor;
 
 import com.opentech.camel.task.Task;
-import com.opentech.camel.task.threading.exception.ResourceLimitException;
-import com.opentech.camel.task.threading.exception.TaskException;
+import com.opentech.camel.task.exception.ResourceLimitException;
+import com.opentech.camel.task.exception.TaskException;
 
 /**
  * Executor of task
