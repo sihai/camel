@@ -15,7 +15,9 @@
  */
 package com.opentech.camel.task.threading;
 
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.Future;
+
+import com.opentech.camel.task.lifecycle.LifeCycle;
 
 
 /**
@@ -23,18 +25,42 @@ import java.util.concurrent.FutureTask;
  * @author sihai
  *
  */
-public interface ThreadPool {
+public interface ThreadPool extends LifeCycle {
 
+	int DEFAULT_CORE_THREAD_COUNT = 2;
+	
+	int DEFAULT_MAX_THREAD_COUNT = 8;
+	
+	long DEFAULT_KEEP_ALIVE_TIME = 60;
+	
 	/**
-	 * 
+	 * Return count of core thread
+	 * @return
+	 */
+	int getCoreThreadCount();
+	
+	/**
+	 * Return max thread count
+	 * @return
+	 */
+	int getMaxThreadCount();
+	
+	/**
+	 * Return keep alive time of idle thread, unit ms
+	 * @return
+	 */
+	long getThreadKeepAliveTime();
+	
+	/**
+	 * Execute one task
 	 * @param runnable
 	 */
 	void execute(Runnable runnable);
 	
 	/**
-	 * 
+	 * Execute one task and return cancellble future
 	 * @param runnable
 	 * @return 
 	 */
-	FutureTask submit(Runnable runnable);
+	Future submit(Runnable runnable);
 }

@@ -16,23 +16,60 @@
 package com.opentech.camel.task.resource;
 
 import com.opentech.camel.task.exception.ResourceLimitException;
+import com.opentech.camel.task.lifecycle.LifeCycle;
 
 /**
  * Resource controller of task domain
  * @author sihai
  *
  */
-public interface TaskDomainResourceController {
+public interface TaskDomainResourceController extends LifeCycle {
+	
+	/**
+	 * Get resource configuration of this controller
+	 * @return
+	 */
+	ResourceConfiguration getResourceConfiguration();
+	
+	/**
+	 * Get resource of this controller
+	 * @return
+	 */
+	TaskDomainResource getResource();
 	
 	/**
 	 * acquire resource for one task<p>
 	 * XXX why not return true or false instead of throw exception, use exception could describe which resource limit
+	 * @return 
 	 * @throws ResourceLimitException
 	 */
-	void acquire() throws ResourceLimitException;
+	ResourceHolder acquire() throws ResourceLimitException;
+	
+	/**
+	 * acquire resource of type for one task<p>
+	 * XXX why not return true or false instead of throw exception, use exception could describe which resource limit
+	 * @return 
+	 * @throws ResourceLimitException
+	 */
+	ResourceHolder acquire(ResourceType type) throws ResourceLimitException;
+	
+	/**
+	 * 
+	 * @param holder
+	 * @param type
+	 */
+	void acquired(ResourceHolder holder, ResourceType type);
 	
 	/**
 	 * release resource for one task
+	 * @param token
 	 */
-	void release();
+	void release(ResourceHolder token);
+	
+	/**
+	 * Try to release resource of type
+	 * @param token
+	 * @param type
+	 */
+	void release(ResourceHolder token, ResourceType type);
 }

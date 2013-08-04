@@ -13,11 +13,13 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.opentech.camel.task.executor;
+package com.opentech.camel.task.watchdog;
 
 import java.util.concurrent.Delayed;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import com.opentech.camel.task.Task;
 
 /**
  * Watched by watchdog
@@ -29,7 +31,12 @@ public class WatchedTask implements Delayed {
 	/**
 	 * Cancellable task
 	 */
-	private FutureTask future;
+	private Future future;
+	
+	/**
+	 * 
+	 */
+	private Task task;
 	
 	/**
 	 * End timestamp of this task
@@ -39,10 +46,12 @@ public class WatchedTask implements Delayed {
 	/**
 	 * 
 	 * @param future
+	 * @param task
 	 * @param endTime
 	 */
-	public WatchedTask(FutureTask future, long endTime) {
+	public WatchedTask(Future future, Task task, long endTime) {
 		this.future = future;
+		this.task = task;
 		this.endTime = endTime;
 	}
 	
@@ -57,6 +66,22 @@ public class WatchedTask implements Delayed {
 	@Override
 	public long getDelay(TimeUnit unit) {
 		return unit.convert(endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public Future getFuture() {
+		return future;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public Task getTask() {
+		return task;
 	}
 
 }

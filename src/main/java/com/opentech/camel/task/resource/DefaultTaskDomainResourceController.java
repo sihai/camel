@@ -15,38 +15,150 @@
  */
 package com.opentech.camel.task.resource;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import com.opentech.camel.task.exception.ResourceLimitException;
+import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
 
 /**
  * Default resource controller of task domain
  * @author sihai
  *
  */
-public class DefaultTaskDomainResourceController implements TaskDomainResourceController {
+public class DefaultTaskDomainResourceController extends AbstractLifeCycle implements TaskDomainResourceController {
 
 	/**
-	 * Resource configuration of this task domain.
+	 * Resource configuration of controller.
 	 */
 	private ResourceConfiguration resourceConfiguration;
 	
 	/**
+	 * Resource of this controller
+	 */
+	private TaskDomainResource resource;
+	
+	/**
+	 * 
+	 */
+	private AtomicInteger usedThreadCount;
+	
+	/**
+	 * 
+	 */
+	private AtomicInteger queueSize;
+	
+	/**
 	 * 
 	 * @param resourceConfiguration
+	 * @param resource
 	 */
-	public DefaultTaskDomainResourceController(ResourceConfiguration resourceConfiguration) {
+	public DefaultTaskDomainResourceController(ResourceConfiguration resourceConfiguration, TaskDomainResource resource) {
 		this.resourceConfiguration = resourceConfiguration;
+		this.resource = resource;
+	}
+	
+	/**
+	 * Initialize
+	 */
+	@Override
+	public void initialize() {
+		usedThreadCount = new AtomicInteger(0);
+		queueSize = new AtomicInteger(0);
+	}
+	
+	/**
+	 * Shutdown
+	 */
+	@Override
+	public void shutdown() {
+		usedThreadCount.set(0);
+		queueSize.set(0);
+		// Release resource
+		resource.release();
 	}
 	
 	@Override
-	public void acquire() throws ResourceLimitException {
-		// TODO Auto-generated method stub
-		
+	public ResourceConfiguration getResourceConfiguration() {
+		return resourceConfiguration;
 	}
 
 	@Override
-	public void release() {
-		// TODO Auto-generated method stub
-		
+	public TaskDomainResource getResource() {
+		return resource;
 	}
 
+	@Override
+	public ResourceHolder acquire() throws ResourceLimitException {
+		if(usedThreadCount.incrementAndGet() <= resourceConfiguration.getThreadingConfiguration().getThreadCount()) {
+			return new ResourceHolder(ResourceType.THREAD);
+		}
+		usedThreadCount.decrementAndGet();
+		if(queueSize.incrementAndGet() <= resourceConfiguration.getQueueCapacity()) {
+			return new ResourceHolder(ResourceType.QUEUE);
+		}
+		queueSize.decrementAndGet();
+		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueueCapacity(), queueSize.intValue()));
+	}
+	
+
+	@Override
+	public ResourceHolder acquire(ResourceType type) throws ResourceLimitException {
+		if(ResourceType.THREAD == type) {
+			if(usedThreadCount.incrementAndGet() <= resourceConfiguration.getThreadingConfiguration().getThreadCount()) {
+				return new ResourceHolder(ResourceType.THREAD);
+			}
+			usedThreadCount.decrementAndGet();
+		} else if(ResourceType.QUEUE == type) {
+			if(queueSize.incrementAndGet() <= resourceConfiguration.getQueueCapacity()) {
+				return new ResourceHolder(ResourceType.QUEUE);
+			}
+			queueSize.decrementAndGet();
+		} else {
+			throw new IllegalArgumentException(String.format("Unknown resource type:%s", type));
+		}
+		
+		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueueCapacity(), queueSize.intValue()));
+	}
+
+	@Override
+	public void acquired(ResourceHolder holder, ResourceType type) {
+		if(type == holder.getType()) {
+			return;
+		} else if(null != holder.getType()) {
+			throw new IllegalStateException(String.format("Aready hold resource type:%s", holder.getType()));
+		} else {
+			if(ResourceType.THREAD == type) {
+				usedThreadCount.decrementAndGet();
+			} else if(ResourceType.QUEUE == type) {
+				queueSize.decrementAndGet();
+			}
+		}
+	}
+	
+	@Override
+	public void release(ResourceHolder holder) {
+		ResourceType type = holder.getType();
+		if(ResourceType.THREAD == type) {
+			usedThreadCount.decrementAndGet();
+		} else if(ResourceType.QUEUE == type) {
+			queueSize.decrementAndGet();
+		} else {
+			throw new IllegalArgumentException(String.format("Unknown resource type:%s", holder));
+		}
+	}
+	
+	@Override
+	public void release(ResourceHolder holder, ResourceType type) {
+		/*if(holder.getType() != type) {
+			throw new IllegalStateException(String.format("ResourceHolder not hold resource type:%s", type));
+		}*/
+		
+		if(ResourceType.THREAD == type) {
+			usedThreadCount.decrementAndGet();
+		} else if(ResourceType.QUEUE == type) {
+			queueSize.decrementAndGet();
+		} else {
+			throw new IllegalArgumentException(String.format("Unknown resource type:%s", type));
+		}
+	}
 }

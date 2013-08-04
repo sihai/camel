@@ -20,11 +20,11 @@ import java.util.concurrent.BlockingQueue;
 import com.opentech.camel.task.Task;
 
 /**
- * Resource used by this task domain, such as queue etc.
+ * 
  * @author sihai
  *
  */
-public class TaskDomainResource {
+public class TaskDomainResourceFactory {
 
 	//======================================================
 	//			Thread resource
@@ -48,31 +48,56 @@ public class TaskDomainResource {
 	 */
 	private BlockingQueue<Task> queue;
 	
-
+	/**
+	 * 
+	 */
+	private TaskDomainResourceFactory() {
+		
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public static TaskDomainResourceFactory newInstance() {
+		return new TaskDomainResourceFactory();
+	}
+	
 	/**
 	 * 
 	 * @param minThreadCount
-	 * @param maxThreadCount
-	 * @param queue
-	 */
-	public TaskDomainResource(int minThreadCount, int maxThreadCount, BlockingQueue<Task> queue) {
-		this.minThreadCount = minThreadCount;
-		this.maxThreadCount = maxThreadCount;
-		this.queue = queue;
-	}
-	
-	/**
-	 * Get queue used by this task domain
 	 * @return
 	 */
-	public BlockingQueue<Task> getQueue() {
-		return queue;
+	public TaskDomainResourceFactory withMinThreadCount(int minThreadCount) {
+		this.minThreadCount = minThreadCount;
+		return this;
 	}
 	
 	/**
-	 * Release resource
+	 * 
+	 * @param maxThreadCount
+	 * @return
 	 */
-	public void release() {
-		queue.clear();
+	public TaskDomainResourceFactory withMaxThreadCount(int maxThreadCount) {
+		this.maxThreadCount = maxThreadCount;
+		return this;
+	}
+	
+	/**
+	 * 
+	 * @param queue
+	 * @return
+	 */
+	public TaskDomainResourceFactory withQueue(BlockingQueue<Task> queue) {
+		this.queue = queue;
+		return this;
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public TaskDomainResource build() {
+		return new TaskDomainResource(minThreadCount, maxThreadCount, queue);
 	}
 }

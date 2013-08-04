@@ -15,23 +15,39 @@
  */
 package com.opentech.camel.task.executor;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.DelayQueue;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.opentech.camel.task.Task;
 import com.opentech.camel.task.TaskDomain;
 import com.opentech.camel.task.TaskDomainRuntime;
+import com.opentech.camel.task.TaskDomainRuntimeFactory;
 import com.opentech.camel.task.exception.ResourceLimitException;
 import com.opentech.camel.task.exception.TaskException;
+import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
+import com.opentech.camel.task.queue.QueueFactory;
+import com.opentech.camel.task.queue.QueueMode;
+import com.opentech.camel.task.resource.ResourceConfiguration;
+import com.opentech.camel.task.resource.TaskDomainResource;
+import com.opentech.camel.task.resource.TaskDomainResourceControllerFactory;
+import com.opentech.camel.task.resource.TaskDomainResourceFactory;
 import com.opentech.camel.task.threading.ThreadPool;
+import com.opentech.camel.task.threading.ThreadingConfiguration;
+import com.opentech.camel.task.threading.ThreadingControlMode;
+import com.opentech.camel.task.watchdog.Watchdog;
 
 /**
- * 
+ * Deafult executor
  * @author sihai
  *
  */
-public class DefaultExecutor implements Executor {
+public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 
+	private static final Log logger = LogFactory.getLog(DefaultExecutor.class);
+	
 	/**
 	 * Timeout of forced, unit ms
 	 */
@@ -43,6 +59,11 @@ public class DefaultExecutor implements Executor {
 	private ThreadPool threadpool;
 	
 	/**
+	 * Total capacity of all queue
+	 */
+	private int queueCapacity = MAX_ALL_QUEUE_CAPACITY;
+	
+	/**
 	 * Task domain name -> task domain
 	 */
 	private Map<String, TaskDomain> domainMap;
@@ -50,7 +71,7 @@ public class DefaultExecutor implements Executor {
 	/**
 	 * Task domain name -> runtime map
 	 */
-	private Map<String, TaskDomainRuntime> rumtimeMap;
+	private Map<String, TaskDomainRuntime> runtimeMap;
 	
 	/**
 	 * Default task domain runtime
@@ -58,81 +79,72 @@ public class DefaultExecutor implements Executor {
 	private TaskDomainRuntime defaultRuntime;
 	
 	/**
-	 * Queue for watchdog
+	 * 
 	 */
-	private DelayQueue<WatchedTask> watchdogQueue;
-	
-	/**
-	 * Thread for watchdog
-	 */
-	private Thread watchdogThread;
+	private Watchdog watchdog;
 	
 	/**
 	 * 
 	 * @param threadpool
+	 * @param queueCapacity
+	 * @param rumtimeMap
 	 */
-	public DefaultExecutor(long forcedTimeout, ThreadPool threadpool, Map<String, TaskDomain> domainMap, Map<String, TaskDomainRuntime> rumtimeMap) {
+	public DefaultExecutor(ThreadPool threadpool, Map<String, TaskDomainRuntime> rumtimeMap, Watchdog watchdog) {
+		this(DEFAULT_FORCED_TIMEOUT, threadpool, MAX_ALL_QUEUE_CAPACITY, rumtimeMap, watchdog);
+	}
+	
+	/**
+	 * 
+	 * @param threadpool
+	 * @param queueCapacity
+	 * @param rumtimeMap
+	 */
+	public DefaultExecutor(ThreadPool threadpool, int queueCapacity, Map<String, TaskDomainRuntime> rumtimeMap, Watchdog watchdog) {
+		this(DEFAULT_FORCED_TIMEOUT, threadpool, queueCapacity, rumtimeMap, watchdog);
+	}
+	
+	/**
+	 * 
+	 * @param forcedTimeout
+	 * @param threadpool
+	 * @param queueCapacity
+	 * @param runtimeMap
+	 * @param watchdog
+	 */
+	public DefaultExecutor(long forcedTimeout, ThreadPool threadpool, int queueCapacity, Map<String, TaskDomainRuntime> runtimeMap, Watchdog watchdog) {
 		this.forcedTimeout = forcedTimeout;
 		this.threadpool = threadpool;
-		this.domainMap = domainMap;
-		this.rumtimeMap = rumtimeMap;
+		this.queueCapacity = queueCapacity;
+		this.runtimeMap = runtimeMap;
+		this.watchdog = watchdog;
 	}
 	
 	/**
 	 * 
 	 */
+	@Override
 	public void initialize() {
 		// TODO
+		assert(null != threadpool);
+		assert(null != runtimeMap);
+		
+		buildDefaultRuntime();
 	}
 	
 	/**
 	 * 
 	 */
+	@Override
 	public void shutdown() {
-		// TODO
+		shutdownRuntimes();
+		shutdownWatchdog();
 	}
 	
 	@Override
 	public void execute(final Task task) throws ResourceLimitException, TaskException {
-		final TaskDomainRuntime runtime = getTaskDomainRuntime(task);
+		TaskDomainRuntime runtime = getTaskDomainRuntime(task);
 		assert(null != runtime);
-		long timeout = getTaskTimeout(runtime, task);
-		try {
-			// acquire resource
-			runtime.acquire();
-			// new runnable
-			Runnable runnable = new Runnable() {
-				
-				@Override
-				public void run() {
-					try {
-						// before
-						task.before();
-						// execute
-						task.execute();
-						// succeed
-						task.succeed();
-					} catch (Throwable t) {
-						// failed
-						task.failed(t);
-					} finally {
-						// completed, succeed or failed (timeout situation will deal with in watchdog)
-						task.after();
-					}
-				}
-				
-			};
-			if(0 == timeout) {
-				// XXX
-				threadpool.execute(runnable);
-			} else {
-				// XXX
-				watchdogQueue.put(new WatchedTask(threadpool.submit(runnable), System.currentTimeMillis() + timeout));
-			}
-		} finally {
-			// release resource
-			runtime.release();
-		}
+		runtime.execute(task);
 	}
 	
 	//================================================================
@@ -150,7 +162,7 @@ public class DefaultExecutor implements Executor {
 		if(null == domainName) {
 			return defaultRuntime;
 		}
-		TaskDomainRuntime runtime = rumtimeMap.get(domainName);
+		TaskDomainRuntime runtime = runtimeMap.get(domainName);
 		if(null == runtime) {
 			throw new TaskException(String.format("Task domain:%s not supported", domainName));
 		}
@@ -158,20 +170,101 @@ public class DefaultExecutor implements Executor {
 	}
 	
 	/**
-	 * 
-	 * @param runtime
-	 * @param task
-	 * @return
+	 * Build default task domain runtime
 	 */
-	private long getTaskTimeout(TaskDomainRuntime runtime, Task task) {
-		long timeout = task.getTimeout();
-		if(0 == timeout) {
-			timeout = runtime.getTimeout();
+	private void buildDefaultRuntime() {
+		int coreSize = threadpool.getCoreThreadCount();
+		int maxSize = threadpool.getMaxThreadCount();
+		int maxQueueCapacity = this.queueCapacity;
+		int needMax = 0;
+		String domainName = null;
+		TaskDomainRuntime runtime = null;
+		ResourceConfiguration resourceConfiguration = null;
+		ThreadingConfiguration threadingConfiguration = null;
+		domainMap = new HashMap<String, TaskDomain>(runtimeMap.size());
+		for(Map.Entry<String, TaskDomainRuntime> e : runtimeMap.entrySet()) {
+			domainName = e.getKey();
+			runtime = e.getValue();
+			domainMap.put(domainName, runtime.getTaskDomain());
+			resourceConfiguration = runtime.getResourceConfiguration();
+			maxQueueCapacity -= resourceConfiguration.getQueueCapacity();
+			threadingConfiguration = resourceConfiguration.getThreadingConfiguration();
+			maxSize -= threadingConfiguration.getThreadCount();
+			needMax += threadingConfiguration.getThreadCount();
+			/*if(threadingConfiguration.getMode() == ThreadingControlMode.RESERVED) {
+				maxSize -= threadingConfiguration.getThreadCount();
+			} else if (threadingConfiguration.getMode() == ThreadingControlMode.MAX) {
+				needMax += threadingConfiguration.getThreadCount();
+			}*/
 		}
-		if(0 == timeout) {
-			timeout = this.forcedTimeout;
+		
+		// 
+		if(maxQueueCapacity <= 0) {
+			throw new IllegalArgumentException(String.format("Queue capacity needed by all task domain big then queueCapacity:%d", queueCapacity));
 		}
-		return timeout;
+		if(maxSize <= 0) {
+			throw new IllegalArgumentException(String.format("Thread need by all task domain big then the max thread of the pool, maxThreadCount:%d, needed:%d", threadpool.getMaxThreadCount(), needMax));
+		}
+		
+		// new default task domain
+		// resource configuration
+		resourceConfiguration = new ResourceConfiguration();
+		resourceConfiguration.setQueueCapacity(maxQueueCapacity);
+		resourceConfiguration.setThreadingConfiguration(new ThreadingConfiguration(ThreadingControlMode.MAX, maxSize));
+		
+		// 
+		TaskDomain defaultTaskDomain = new TaskDomain(TaskDomain.DEFAULT_TASK_DOMAIN_NAME, resourceConfiguration);
+		
+		TaskDomainResource resource = TaskDomainResourceFactory
+				.newInstance()
+				.withMaxThreadCount(maxSize)
+				.withQueue(
+						QueueFactory.newInstance()
+								.withMode(QueueMode.THREAD_SAFE)
+								.withCapacity(maxQueueCapacity).build())
+				.build();
+		
+		defaultRuntime = TaskDomainRuntimeFactory
+				.newInstance()
+				.withTaskDomain(defaultTaskDomain)
+				.withResourceController(
+						TaskDomainResourceControllerFactory
+								.newInstance()
+								.withResourceConfiguration(
+										resourceConfiguration)
+								.withResource(resource).build()).build();
+		
+		defaultRuntime.setThreadpool(threadpool);
+		defaultRuntime.setWatchdog(watchdog);
+		
+		// 
+		for(TaskDomainRuntime r : runtimeMap.values()) {
+			if(ThreadingControlMode.RESERVED == r.getResourceConfiguration().getThreadingConfiguration().getMode()) {
+				runtime.setDefaultRuntime(defaultRuntime);
+			}
+			r.setThreadpool(threadpool);
+			r.setWatchdog(watchdog);
+		}
+	}
+	
+	//================================================================
+	//
+	//================================================================
+	/**
+	 * 
+	 */
+	private void shutdownRuntimes() {
+		for(TaskDomainRuntime runtime : runtimeMap.values()) {
+			runtime.shutdown();
+		}
+		defaultRuntime.shutdown();
+	}
+	
+	/**
+	 * TODO
+	 */
+	private void shutdownWatchdog() {
+		watchdog.shutdown();
 	}
 	
 	public long getForcedTimeout() {

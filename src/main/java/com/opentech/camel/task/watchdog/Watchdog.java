@@ -13,33 +13,24 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.opentech.camel.task.executor;
+package com.opentech.camel.task.watchdog;
 
-import com.opentech.camel.task.Task;
-import com.opentech.camel.task.exception.ResourceLimitException;
-import com.opentech.camel.task.exception.TaskException;
 import com.opentech.camel.task.lifecycle.LifeCycle;
 
 /**
- * Executor of task
+ * 
  * @author sihai
  *
  */
-public interface Executor extends LifeCycle {
+public interface Watchdog extends LifeCycle {
 	
-	int MAX_ALL_QUEUE_CAPACITY = 1024;
+	int DEFAULT_WATCHDOG_THREAD_COUNT = 1;
 	
-	long NONE_TIMEOUT = 0;
-	
-	/**
-	 * Default forced timeout, unit ms
-	 */
-	long DEFAULT_FORCED_TIMEOUT = 60000;
+	int DEFAULT_WATCHDOG_QUEUE_CAPACITY = 1024;
 	
 	/**
-	 * Execute task
-	 * @param task
-	 * @throws ResourceLimitException, TaskException
+	 * 
+	 * @param wt
 	 */
-	void execute(final Task task) throws ResourceLimitException, TaskException;
+	void watch(WatchedTask wt);
 }

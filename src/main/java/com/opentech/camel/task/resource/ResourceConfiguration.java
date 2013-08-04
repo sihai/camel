@@ -16,7 +16,6 @@
 package com.opentech.camel.task.resource;
 
 import com.opentech.camel.task.threading.ThreadingConfiguration;
-import com.opentech.camel.task.threading.ThreadingControlMode;
 
 /**
  * <b>资源配置, 涉及如下配置:</b><p>
@@ -53,6 +52,13 @@ public class ResourceConfiguration {
 	 */
 	private ThreadingConfiguration threadingConfiguration = DEFAULT_MAX_THREADING_CONFIGURATION;
 
+	/**
+	 * 
+	 */
+	public ResourceConfiguration() {
+		
+	}
+	
 	public int getQueueCapacity() {
 		return queueCapacity;
 	}

@@ -13,33 +13,22 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.opentech.camel.task.executor;
-
-import com.opentech.camel.task.Task;
-import com.opentech.camel.task.exception.ResourceLimitException;
-import com.opentech.camel.task.exception.TaskException;
-import com.opentech.camel.task.lifecycle.LifeCycle;
+package com.opentech.camel.task.lifecycle;
 
 /**
- * Executor of task
+ * 
  * @author sihai
  *
  */
-public interface Executor extends LifeCycle {
-	
-	int MAX_ALL_QUEUE_CAPACITY = 1024;
-	
-	long NONE_TIMEOUT = 0;
+public interface LifeCycle {
+
+	/**
+	 * Initialize
+	 */
+	void initialize();
 	
 	/**
-	 * Default forced timeout, unit ms
+	 * Shutdown
 	 */
-	long DEFAULT_FORCED_TIMEOUT = 60000;
-	
-	/**
-	 * Execute task
-	 * @param task
-	 * @throws ResourceLimitException, TaskException
-	 */
-	void execute(final Task task) throws ResourceLimitException, TaskException;
+	void shutdown();
 }

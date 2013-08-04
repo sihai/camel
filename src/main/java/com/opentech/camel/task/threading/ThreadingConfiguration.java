@@ -34,20 +34,37 @@ public class ThreadingConfiguration {
 	 * Value of thread count (MAX, RESERVED)
 	 */
 	private int threadCount = DEFAULT_MAX_THREAD_COUNT;
+	
+	/**
+	 * 
+	 */
+	public ThreadingConfiguration() {
+		this(ThreadingControlMode.MAX, DEFAULT_MAX_THREAD_COUNT);
+	}
+	
+	/**
+	 * 
+	 * @param threadCount
+	 */
+	public ThreadingConfiguration(int threadCount) {
+		this(ThreadingControlMode.MAX, threadCount);
+	}
+	
+	/**
+	 * 
+	 * @param mode
+	 * @param threadCount
+	 */
+	public ThreadingConfiguration(ThreadingControlMode mode, int threadCount) {
+		this.mode = mode;
+		this.threadCount = threadCount;
+	}
 
 	public ThreadingControlMode getMode() {
 		return mode;
 	}
 
-	public void setMode(ThreadingControlMode mode) {
-		this.mode = mode;
-	}
-
 	public int getThreadCount() {
 		return threadCount;
-	}
-
-	public void setThreadCount(int threadCount) {
-		this.threadCount = threadCount;
 	}
 }
