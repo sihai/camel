@@ -21,9 +21,10 @@ import org.junit.Test;
 
 import com.opentech.camel.task.exception.ResourceLimitException;
 import com.opentech.camel.task.executor.Executor;
+import com.opentech.camel.task.queue.QueuingConfiguration;
+import com.opentech.camel.task.resource.ResourceControlMode;
 import com.opentech.camel.task.resource.ResourceConfiguration;
 import com.opentech.camel.task.threading.ThreadingConfiguration;
-import com.opentech.camel.task.threading.ThreadingControlMode;
 
 /**
  * 
@@ -59,9 +60,10 @@ public class BootstrapTest {
 			}
 			
 		});
-		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ThreadingControlMode.MAX, 1);
+		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 1);
+		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueueCapacity(1);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
@@ -80,9 +82,10 @@ public class BootstrapTest {
 	
 	@Test(expected = ResourceLimitException.class)
 	public void testDomainMax_ResourceLimitException() throws Exception {
-		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ThreadingControlMode.MAX, 1);
+		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 1);
+		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueueCapacity(1);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
@@ -101,6 +104,8 @@ public class BootstrapTest {
 		Thread.sleep(100000);
 		executor.shutdown();
 	}
+	
+	
 	
 	private Task createTask(final String domainName, final String name) {
 		return new AbstractTask() {
