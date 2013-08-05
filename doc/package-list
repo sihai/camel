@@ -1,0 +1,8 @@
+com.opentech.camel.task
+com.opentech.camel.task.exception
+com.opentech.camel.task.executor
+com.opentech.camel.task.lifecycle
+com.opentech.camel.task.queue
+com.opentech.camel.task.resource
+com.opentech.camel.task.threading
+com.opentech.camel.task.watchdog
