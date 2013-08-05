@@ -13,20 +13,23 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.opentech.camel.task.threading;
+package com.opentech.camel.task.resource;
 
 /**
- * <b>线程控制模式</b><p>
+ * <b>资源控制模式</b><p>
  * 目前支持如下模式：<p>
  * <ul>
  * 	<li>
- * 		MAX
+ * 		MAX - 限制模式
+ * 	</li>
+ * <li>
+ * 		RESERVED - 预留模式, 其实就是MIN
  * 	</li>
  * </ul>
  * @author sihai
  *
  */
-public enum ThreadingControlMode {
+public enum ResourceControlMode {
 
 	MAX,
 	RESERVED;

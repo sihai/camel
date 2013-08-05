@@ -29,6 +29,7 @@ import com.opentech.camel.task.executor.Executor;
 import com.opentech.camel.task.executor.WrapedTask;
 import com.opentech.camel.task.lifecycle.LifeCycle;
 import com.opentech.camel.task.resource.ResourceConfiguration;
+import com.opentech.camel.task.resource.ResourceControlMode;
 import com.opentech.camel.task.resource.ResourceHolder;
 import com.opentech.camel.task.resource.ResourceType;
 import com.opentech.camel.task.resource.TaskDomainResource;
@@ -113,6 +114,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 */
 	private Thread dispatcherThread;
 	
+	//===========================================================================
+	//				
+	//===========================================================================
 	/**
 	 * 
 	 */
@@ -126,7 +130,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	/**
 	 * 
 	 * @param taskDomain
-	 * @param resourceController
+	 * @param resourceControllera
 	 */
 	public TaskDomainRuntime(TaskDomain taskDomain, TaskDomainResourceController resourceController) {
 		this(taskDomain, Executor.NONE_TIMEOUT, resourceController);
@@ -208,14 +212,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			return holder;
 		} catch (ResourceLimitException e) {
 			logger.debug(String.format("There is no resource of runtime of task domain:%s", taskDomain.getName()));
-			if(null != defaultRuntime) {
-				logger.debug(String.format("Try to acquire one resource from default runtime, original task domain:%s", taskDomain.getName()));
-				holder = defaultRuntime.acquire();
-				holder.setRuntime(defaultRuntime);
-				return holder;
-			} else {
-				throw e;
-			}
+			holder = tryBorrowFromDefaultRuntime();
+			holder.setRuntime(defaultRuntime);
+			return holder;
 		}
 	}
 	
@@ -229,14 +228,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			return holder;
 		} catch (ResourceLimitException e) {
 			logger.debug(String.format("There is no resource type:%s of runtime of task domain:%s", type, taskDomain.getName()));
-			if(null != defaultRuntime) {
-				logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
-				holder = defaultRuntime.acquire(type);
-				holder.setRuntime(defaultRuntime);
-				return holder;
-			} else {
-				throw e;
-			}
+			holder = this.tryBorrowFromDefaultRuntime(type);
+			holder.setRuntime(defaultRuntime);
+			return holder;
 		}
 	}
 
@@ -295,6 +289,43 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			throw new RuntimeException(String.format("Unknown resource type:%s", type));
 		}
 		totalTasks.incrementAndGet();
+	}
+	
+	/**
+	 * 
+	 * @return
+	 * @throws ResourceLimitException
+	 */
+	private ResourceHolder tryBorrowFromDefaultRuntime() throws ResourceLimitException {
+		logger.debug(String.format("Try to acquire one resource from default runtime, original task domain:%s", taskDomain.getName()));
+		// Try borrow thread
+		try {
+			return tryBorrowFromDefaultRuntime(ResourceType.THREAD);
+		} catch (ResourceLimitException e) {
+			// Try borrow queue
+			return tryBorrowFromDefaultRuntime(ResourceType.QUEUE);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param type
+	 * @return
+	 * @throws ResourceLimitException
+	 */
+	private ResourceHolder tryBorrowFromDefaultRuntime(ResourceType type) throws ResourceLimitException {
+		logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
+		ResourceControlMode mode = null;
+		if(ResourceType.THREAD == type) {
+			mode = taskDomain.getResourceConfiguration().getThreadingConfiguration().getMode();
+		} else if (ResourceType.QUEUE == type) {
+			mode = taskDomain.getResourceConfiguration().getQueuingConfiguration().getMode();
+		}
+		
+		if(ResourceControlMode.RESERVED == mode) {
+			return defaultRuntime.acquire(type);
+		}
+		throw new ResourceLimitException(String.format("Task domain runtime can not borrow from default runtime, because of this is not RESERVED"));
 	}
 	
 	/**
@@ -386,7 +417,6 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		}
 	}
 	
-	
 	/**
 	 * 
 	 * @return
@@ -471,7 +501,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		return succeedTasks.get();
 	}
 
-	public long getFailedTasks() {
+	public long getFailedTasks() {setDefaultRuntime
 		return failedTasks.get();
 	}
 

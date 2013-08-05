@@ -15,6 +15,7 @@
  */
 package com.opentech.camel.task.resource;
 
+import com.opentech.camel.task.queue.QueuingConfiguration;
 import com.opentech.camel.task.threading.ThreadingConfiguration;
 
 /**
@@ -26,7 +27,7 @@ import com.opentech.camel.task.threading.ThreadingConfiguration;
  * 		</tr>
  * 		<tr>
  * 			<td>线程模式</td>
- * 			<td>默认{@link com.opentech.camel.task.threading.ThreadingControlMode}</td>
+ * 			<td>默认{@link com.opentech.camel.task.resource.ResourceControlMode}</td>
  * 		</tr>
  * </table>
  * 
@@ -35,22 +36,19 @@ import com.opentech.camel.task.threading.ThreadingConfiguration;
  */
 public class ResourceConfiguration {
 	
-	/**
-	 * Default capacity of queue
-	 */
-	public static final int DEFAULT_QUEUE_CAPACITY = 1024;
-	
 	public static final ThreadingConfiguration DEFAULT_MAX_THREADING_CONFIGURATION = new ThreadingConfiguration();
 	
-	/**
-	 * capacity of queue
-	 */
-	private int queueCapacity = DEFAULT_QUEUE_CAPACITY;
+	public static final QueuingConfiguration DEFAULT_MAX_QUEUING_CONFIGURATION = new QueuingConfiguration();
 	
 	/**
 	 * Threading Configuration
 	 */
 	private ThreadingConfiguration threadingConfiguration = DEFAULT_MAX_THREADING_CONFIGURATION;
+	
+	/**
+	 * Queuing Configuration
+	 */
+	private QueuingConfiguration queuingConfiguration = DEFAULT_MAX_QUEUING_CONFIGURATION;
 
 	/**
 	 * 
@@ -59,12 +57,14 @@ public class ResourceConfiguration {
 		
 	}
 	
-	public int getQueueCapacity() {
-		return queueCapacity;
-	}
-
-	public void setQueueCapacity(int queueCapacity) {
-		this.queueCapacity = queueCapacity;
+	/**
+	 * 
+	 * @param threadingConfiguration
+	 * @param queuingConfiguration
+	 */
+	public ResourceConfiguration(ThreadingConfiguration threadingConfiguration, QueuingConfiguration queuingConfiguration) {
+		this.threadingConfiguration = threadingConfiguration;
+		this.queuingConfiguration = queuingConfiguration;
 	}
 
 	public ThreadingConfiguration getThreadingConfiguration() {
@@ -74,5 +74,13 @@ public class ResourceConfiguration {
 	public void setThreadingConfiguration(
 			ThreadingConfiguration threadingConfiguration) {
 		this.threadingConfiguration = threadingConfiguration;
+	}
+
+	public QueuingConfiguration getQueuingConfiguration() {
+		return queuingConfiguration;
+	}
+
+	public void setQueuingConfiguration(QueuingConfiguration queuingConfiguration) {
+		this.queuingConfiguration = queuingConfiguration;
 	}
 }

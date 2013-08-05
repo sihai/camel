@@ -30,13 +30,14 @@ import com.opentech.camel.task.exception.TaskException;
 import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
 import com.opentech.camel.task.queue.QueueFactory;
 import com.opentech.camel.task.queue.QueueMode;
+import com.opentech.camel.task.queue.QueuingConfiguration;
+import com.opentech.camel.task.resource.ResourceControlMode;
 import com.opentech.camel.task.resource.ResourceConfiguration;
 import com.opentech.camel.task.resource.TaskDomainResource;
 import com.opentech.camel.task.resource.TaskDomainResourceControllerFactory;
 import com.opentech.camel.task.resource.TaskDomainResourceFactory;
 import com.opentech.camel.task.threading.ThreadPool;
 import com.opentech.camel.task.threading.ThreadingConfiguration;
-import com.opentech.camel.task.threading.ThreadingControlMode;
 import com.opentech.camel.task.watchdog.Watchdog;
 
 /**
@@ -128,7 +129,7 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 		assert(null != threadpool);
 		assert(null != runtimeMap);
 		
-		buildDefaultRuntime();
+		buildRuntime();
 	}
 	
 	/**
@@ -170,13 +171,14 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 	}
 	
 	/**
-	 * Build default task domain runtime
+	 * Config all runtime and build default task domain runtime
 	 */
-	private void buildDefaultRuntime() {
-		int coreSize = threadpool.getCoreThreadCount();
-		int maxSize = threadpool.getMaxThreadCount();
+	private void buildRuntime() {
+		//int coreThreadSize = threadpool.getCoreThreadCount();
+		int maxThreadSize = threadpool.getMaxThreadCount();
 		int maxQueueCapacity = this.queueCapacity;
-		int needMax = 0;
+		int needThread = 0;
+		int needQueue = 0;
 		String domainName = null;
 		TaskDomainRuntime runtime = null;
 		ResourceConfiguration resourceConfiguration = null;
@@ -187,10 +189,13 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 			runtime = e.getValue();
 			domainMap.put(domainName, runtime.getTaskDomain());
 			resourceConfiguration = runtime.getResourceConfiguration();
-			maxQueueCapacity -= resourceConfiguration.getQueueCapacity();
+			
 			threadingConfiguration = resourceConfiguration.getThreadingConfiguration();
-			maxSize -= threadingConfiguration.getThreadCount();
-			needMax += threadingConfiguration.getThreadCount();
+			maxThreadSize -= threadingConfiguration.getThreadCount();
+			needThread += threadingConfiguration.getThreadCount();
+			
+			maxQueueCapacity -= resourceConfiguration.getQueuingConfiguration().getQueueCapacity();
+			needQueue += resourceConfiguration.getQueuingConfiguration().getQueueCapacity();
 			/*if(threadingConfiguration.getMode() == ThreadingControlMode.RESERVED) {
 				maxSize -= threadingConfiguration.getThreadCount();
 			} else if (threadingConfiguration.getMode() == ThreadingControlMode.MAX) {
@@ -199,25 +204,25 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 		}
 		
 		// 
-		if(maxQueueCapacity <= 0) {
-			throw new IllegalArgumentException(String.format("Queue capacity needed by all task domain big then queueCapacity:%d", queueCapacity));
+		if(maxThreadSize <= 0) {
+			throw new IllegalArgumentException(String.format("Thread need by all task domain big then the max thread of the pool, maxThreadCount:%d, needed:%d", threadpool.getMaxThreadCount(), needThread));
 		}
-		if(maxSize <= 0) {
-			throw new IllegalArgumentException(String.format("Thread need by all task domain big then the max thread of the pool, maxThreadCount:%d, needed:%d", threadpool.getMaxThreadCount(), needMax));
+		if(maxQueueCapacity <= 0) {
+			throw new IllegalArgumentException(String.format("Queue capacity needed by all task domain big then maxQueueCapacity:%d, needed:%d", queueCapacity, needQueue));
 		}
 		
 		// new default task domain
 		// resource configuration
 		resourceConfiguration = new ResourceConfiguration();
-		resourceConfiguration.setQueueCapacity(maxQueueCapacity);
-		resourceConfiguration.setThreadingConfiguration(new ThreadingConfiguration(ThreadingControlMode.MAX, maxSize));
+		resourceConfiguration.setQueuingConfiguration(new QueuingConfiguration(ResourceControlMode.MAX, maxQueueCapacity));
+		resourceConfiguration.setThreadingConfiguration(new ThreadingConfiguration(ResourceControlMode.MAX, maxThreadSize));
 		
 		// 
 		TaskDomain defaultTaskDomain = new TaskDomain(TaskDomain.DEFAULT_TASK_DOMAIN_NAME, resourceConfiguration);
 		
 		TaskDomainResource resource = TaskDomainResourceFactory
 				.newInstance()
-				.withMaxThreadCount(maxSize)
+				.withMaxThreadCount(maxThreadSize)
 				.withQueue(
 						QueueFactory.newInstance()
 								.withMode(QueueMode.THREAD_SAFE)
@@ -239,9 +244,9 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 		
 		// 
 		for(TaskDomainRuntime r : runtimeMap.values()) {
-			if(ThreadingControlMode.RESERVED == r.getResourceConfiguration().getThreadingConfiguration().getMode()) {
+			/*if(ReourceControlMode.RESERVED == r.getResourceConfiguration().getThreadingConfiguration().getMode()) {
 				runtime.setDefaultRuntime(defaultRuntime);
-			}
+			}*/
 			r.setThreadpool(threadpool);
 			r.setWatchdog(watchdog);
 		}

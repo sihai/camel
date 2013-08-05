@@ -93,11 +93,11 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 			return new ResourceHolder(ResourceType.THREAD);
 		}
 		usedThreadCount.decrementAndGet();
-		if(queueSize.incrementAndGet() <= resourceConfiguration.getQueueCapacity()) {
+		if(queueSize.incrementAndGet() <= resourceConfiguration.getQueuingConfiguration().getQueueCapacity()) {
 			return new ResourceHolder(ResourceType.QUEUE);
 		}
 		queueSize.decrementAndGet();
-		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueueCapacity(), queueSize.intValue()));
+		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueuingConfiguration().getQueueCapacity(), queueSize.intValue()));
 	}
 	
 
@@ -109,7 +109,7 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 			}
 			usedThreadCount.decrementAndGet();
 		} else if(ResourceType.QUEUE == type) {
-			if(queueSize.incrementAndGet() <= resourceConfiguration.getQueueCapacity()) {
+			if(queueSize.incrementAndGet() <= resourceConfiguration.getQueuingConfiguration().getQueueCapacity()) {
 				return new ResourceHolder(ResourceType.QUEUE);
 			}
 			queueSize.decrementAndGet();
@@ -117,7 +117,7 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 			throw new IllegalArgumentException(String.format("Unknown resource type:%s", type));
 		}
 		
-		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueueCapacity(), queueSize.intValue()));
+		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueuingConfiguration().getQueueCapacity(), queueSize.intValue()));
 	}
 
 	@Override

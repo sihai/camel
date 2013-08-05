@@ -138,11 +138,14 @@ public class Bootstrap {
 			resource = TaskDomainResourceFactory.newInstance()
 					.withMinThreadCount(domain.getResourceConfiguration().getThreadingConfiguration().getThreadCount())
 					.withMaxThreadCount(domain.getResourceConfiguration().getThreadingConfiguration().getThreadCount())
-					.withQueue(QueueFactory.newInstance().withMode(QueueMode.THREAD_SAFE).withCapacity(domain.getResourceConfiguration().getQueueCapacity()).build()).build();
+					.withQueue(QueueFactory.newInstance().withMode(QueueMode.THREAD_SAFE).withCapacity(domain.getResourceConfiguration().getQueuingConfiguration().getQueueCapacity()).build()).build();
 			controller = TaskDomainResourceControllerFactory.newInstance().withResource(resource).withResourceConfiguration(domain.getResourceConfiguration()).build();
 			runtimeMap.put(domain.getName(), TaskDomainRuntimeFactory.newInstance().withTaskDomain(domain).withResourceController(controller).withTimeout(domain.getTimeout()).build());
 		}
-		return ExecutorFactory.newInstance().withForcedTimeout(forcedTimeout).withQueueCapacity(queueCapacity).withRuntimeMap(runtimeMap).withThreadpool(threadpool).withWatchdog(WatchdogFactory.newIntance().withThreadCount(watchdogThreadCount).withQueueCapacity(watchdogQueueCapacity).build()).build();
+		return ExecutorFactory.newInstance().withForcedTimeout(forcedTimeout).withQueueCapacity(queueCapacity).withRuntimeMap(runtimeMap)
+				.withThreadpool(threadpool)
+				.withWatchdog(WatchdogFactory.newIntance().withThreadCount(watchdogThreadCount).withQueueCapacity(watchdogQueueCapacity).build())
+				.build();
 	}
 
 	public void setDomains(List<TaskDomain> domains) {

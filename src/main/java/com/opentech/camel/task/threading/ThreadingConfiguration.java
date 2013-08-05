@@ -15,6 +15,8 @@
  */
 package com.opentech.camel.task.threading;
 
+import com.opentech.camel.task.resource.ResourceControlMode;
+
 /**
  * Configuration of threading
  * 
@@ -28,7 +30,7 @@ public class ThreadingConfiguration {
 	/**
 	 * Mode of threading control
 	 */
-	private ThreadingControlMode mode = ThreadingControlMode.MAX;
+	private ResourceControlMode mode = ResourceControlMode.MAX;
 	
 	/**
 	 * Value of thread count (MAX, RESERVED)
@@ -39,7 +41,7 @@ public class ThreadingConfiguration {
 	 * 
 	 */
 	public ThreadingConfiguration() {
-		this(ThreadingControlMode.MAX, DEFAULT_MAX_THREAD_COUNT);
+		this(ResourceControlMode.MAX, DEFAULT_MAX_THREAD_COUNT);
 	}
 	
 	/**
@@ -47,7 +49,7 @@ public class ThreadingConfiguration {
 	 * @param threadCount
 	 */
 	public ThreadingConfiguration(int threadCount) {
-		this(ThreadingControlMode.MAX, threadCount);
+		this(ResourceControlMode.MAX, threadCount);
 	}
 	
 	/**
@@ -55,12 +57,12 @@ public class ThreadingConfiguration {
 	 * @param mode
 	 * @param threadCount
 	 */
-	public ThreadingConfiguration(ThreadingControlMode mode, int threadCount) {
+	public ThreadingConfiguration(ResourceControlMode mode, int threadCount) {
 		this.mode = mode;
 		this.threadCount = threadCount;
 	}
 
-	public ThreadingControlMode getMode() {
+	public ResourceControlMode getMode() {
 		return mode;
 	}
 
