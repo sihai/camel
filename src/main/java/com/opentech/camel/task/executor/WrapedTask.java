@@ -38,24 +38,16 @@ public abstract class WrapedTask implements Runnable {
 	/**
 	 * 
 	 */
-	private ResourceHolder token;
+	private ResourceHolder holder;
 	
 	/**
 	 * 
 	 * @param task
-	 * @param token
+	 * @param holder
 	 */
-	public WrapedTask(Task task, ResourceHolder token) {
+	public WrapedTask(Task task, ResourceHolder holder) {
 		this.task = task;
-		this.token = token;
-	}
-	
-	/**
-	 * 
-	 */
-	private void before() {
-		//
-		token.getRuntime().release(token);
+		this.holder = holder;
 	}
 	
 	/*@Override
@@ -85,19 +77,19 @@ public abstract class WrapedTask implements Runnable {
 		}
 	}*/
 	
-	/**
-	 * 
-	 */
-	private void after() {
-		//
-		token.getRuntime().release(token);
-	}
-
 	public Task getTask() {
 		return task;
 	}
 
-	public ResourceHolder getToken() {
-		return token;
+	public ResourceHolder getResourceHolder() {
+		return holder;
+	}
+
+	public ResourceHolder getHolder() {
+		return holder;
+	}
+
+	public void setHolder(ResourceHolder holder) {
+		this.holder = holder;
 	}
 }

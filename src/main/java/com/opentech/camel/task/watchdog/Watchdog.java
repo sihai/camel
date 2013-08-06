@@ -33,4 +33,10 @@ public interface Watchdog extends LifeCycle {
 	 * @param wt
 	 */
 	void watch(WatchedTask wt);
+	
+	/**
+	 * 
+	 * @param wt
+	 */
+	void remove(WatchedTask wt);
 }

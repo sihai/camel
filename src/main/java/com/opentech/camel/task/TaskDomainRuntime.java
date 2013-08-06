@@ -173,17 +173,19 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	//=========================================================
 	@Override
 	public void initialize() {
-		logger.info(String.format("try to initialize %s's runtime", taskDomain.getName()));
+		logger.info(String.format("try to initialize task domain runtime: %s", taskDomain.getName()));
 		initializeDispatcher();
-		logger.info(String.format("%s's runtime initialize", taskDomain.getName()));
+		logger.info(String.format("task domain runtime: %s resourceController: %s", taskDomain.getName(), resourceController.toString()));
+		logger.info(String.format("task domain runtime: %s initialized", taskDomain.getName()));
 	}
 
 	@Override
 	public void shutdown() {
-		logger.info(String.format("try to shutdown %s's runtime", taskDomain.getName()));
+		logger.info(String.format("try to shutdown task domain runtime: %s", taskDomain.getName()));
+		logger.info(String.format("task domain runtime: %s resourceController: %s", taskDomain.getName(), resourceController.toString()));
 		resourceController.shutdown();
 		shutdownDispatcher();
-		logger.info(String.format("%s's runtime shutdowned", taskDomain.getName()));
+		logger.info(String.format("task domain runtime: %s shutdowned", taskDomain.getName()));
 	}
 	
 	//=========================================================
@@ -211,7 +213,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			holder.setRuntime(this);
 			return holder;
 		} catch (ResourceLimitException e) {
-			logger.debug(String.format("There is no resource of runtime of task domain:%s", taskDomain.getName()));
+			//logger.debug(String.format("There is no resource of runtime of task domain:%s", taskDomain.getName()));
 			holder = tryBorrowFromDefaultRuntime();
 			holder.setRuntime(defaultRuntime);
 			return holder;
@@ -221,13 +223,13 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	@Override
 	public ResourceHolder acquire(ResourceType type) throws ResourceLimitException {
 		ResourceHolder holder = null;
-		logger.debug(String.format("Try to acquire one resource type:%s from runtime of task domain:%s", type, taskDomain.getName()));
+		//logger.debug(String.format("Try to acquire one resource type:%s from runtime of task domain:%s", type, taskDomain.getName()));
 		try {
 			holder = resourceController.acquire(type);
 			holder.setRuntime(this);
 			return holder;
 		} catch (ResourceLimitException e) {
-			logger.debug(String.format("There is no resource type:%s of runtime of task domain:%s", type, taskDomain.getName()));
+			//logger.debug(String.format("There is no resource type:%s of runtime of task domain:%s", type, taskDomain.getName()));
 			holder = this.tryBorrowFromDefaultRuntime(type);
 			holder.setRuntime(defaultRuntime);
 			return holder;
@@ -238,6 +240,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * 
 	 */
 	public void release(ResourceHolder holder) {
+		logger.debug(String.format("Release resource:%s", holder));
 		if(this == holder.getRuntime()) {
 			resourceController.release(holder);
 			if(ResourceType.THREAD == holder.getType()) {
@@ -250,6 +253,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	
 	@Override
 	public void release(ResourceHolder holder, ResourceType type) {
+		logger.debug(String.format("Release resource:%s, type:%s", holder, type));
 		if(this == holder.getRuntime()) {
 			resourceController.release(holder, type);
 			if(ResourceType.THREAD == type) {
@@ -260,31 +264,43 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		}
 	}
 
-	/**
-	 * 
-	 * @param holder
-	 * @param type
-	 */
-	public void acquired(ResourceHolder holder, ResourceType type) {
-		if(this == holder.getRuntime()) {
-			resourceController.acquired(holder, type);
-		} else if(defaultRuntime == holder.getRuntime()) {
-			defaultRuntime.acquired(holder, type);
-		}
-	}
-	
 	//=========================================================
 	//			Executor
 	//=========================================================
 	@Override
-	public void execute(Task task) throws ResourceLimitException, TaskException {
+	public void execute(final Task task) throws ResourceLimitException, TaskException {
 		requestTasks.incrementAndGet();
 		ResourceHolder holder = acquire();
+		logger.debug(String.format("acquired resource:%s", holder.toString()));
 		ResourceType type = holder.getType();
+		
+		// new runnable
+		WrapedTask wt = new WrapedTask(task, holder) {
+
+			@Override
+			public void run() {
+				try {
+					// before
+					task.before();
+					// execute
+					task.execute();
+					// succeed
+					task.succeed();
+				} catch (Throwable t) {
+					// failed
+					task.failed(t);
+				} finally {
+					// completed, succeed or failed (timeout situation will deal with in watchdog)
+					task.after();
+				}
+			}
+
+		};
+					
 		if(ResourceType.THREAD == type) {
-			_execute(task, holder);
+			_execute(wt);
 		} else if(ResourceType.QUEUE == type) {
-			_queue(task, holder);
+			_queue(wt);
 		} else {
 			throw new RuntimeException(String.format("Unknown resource type:%s", type));
 		}
@@ -297,7 +313,6 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @throws ResourceLimitException
 	 */
 	private ResourceHolder tryBorrowFromDefaultRuntime() throws ResourceLimitException {
-		logger.debug(String.format("Try to acquire one resource from default runtime, original task domain:%s", taskDomain.getName()));
 		// Try borrow thread
 		try {
 			return tryBorrowFromDefaultRuntime(ResourceType.THREAD);
@@ -314,7 +329,10 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @throws ResourceLimitException
 	 */
 	private ResourceHolder tryBorrowFromDefaultRuntime(ResourceType type) throws ResourceLimitException {
-		logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
+		if(null == defaultRuntime) {
+			throw new ResourceLimitException("Default runtime can not borrow resource from others");
+		}
+		//logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
 		ResourceControlMode mode = null;
 		if(ResourceType.THREAD == type) {
 			mode = taskDomain.getResourceConfiguration().getThreadingConfiguration().getMode();
@@ -330,42 +348,19 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	
 	/**
 	 * 
-	 * @param task
-	 * @param holder
+	 * @param wt
 	 */
-	private void _execute(final Task task, ResourceHolder holder) {
-		assert(null != holder.getRuntime());
-		logger.debug(String.format("Try execute one task, task runtime:%s", holder.getRuntime().getTaskDomain().getName()));
-		long timeout = getTaskTimeout(task);
+	private void _execute(final WrapedTask wt) {
+		assert(null != wt.getResourceHolder().getRuntime());
+		logger.debug(String.format("Try execute one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
+		long timeout = getTaskTimeout(wt.getTask());
 		try {
-			// new runnable
-			Runnable runnable = new WrapedTask(task, holder) {
-
-				@Override
-				public void run() {
-					try {
-						// before
-						task.before();
-						// execute
-						task.execute();
-						// succeed
-						task.succeed();
-					} catch (Throwable t) {
-						// failed
-						task.failed(t);
-					} finally {
-						// completed, succeed or failed (timeout situation will deal with in watchdog)
-						task.after();
-					}
-				}
-
-			};
 			if(Executor.NONE_TIMEOUT == timeout) {
 				// XXX
-				threadpool.execute(runnable);
+				threadpool.execute(wt);
 			} else {
 				// XXX
-				watchdog.watch(new WatchedTask(threadpool.submit(runnable), task, System.currentTimeMillis() + timeout));
+				watchdog.watch(new WatchedTask(threadpool.submit(wt), wt, System.currentTimeMillis() + timeout));
 			}
 		} finally {
 		}
@@ -373,17 +368,16 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	
 	/**
 	 * 
-	 * @param task
-	 * @param holder
+	 * @param wt
 	 * @throws TaskException
 	 */
-	private void _queue(Task task, ResourceHolder holder) throws TaskException {
-		assert(null != holder.getRuntime());
-		logger.debug(String.format("Try queue one task, task runtime:%s", holder.getRuntime().getTaskDomain().getName()));
+	private void _queue(WrapedTask wt) throws TaskException {
+		assert(null != wt.getResourceHolder().getRuntime());
+		logger.debug(String.format("Try queue one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
 		try {
-			holder.getRuntime().getResource().getQueue().put(task);
+			wt.getResourceHolder().getRuntime().getResource().getQueue().put(wt);
 		} catch (InterruptedException e) {
-			release(holder, ResourceType.QUEUE);
+			release(wt.getResourceHolder(), ResourceType.QUEUE);
 			Thread.currentThread().interrupt();
 			throw new TaskException("OMG, not possible, should never be interrupted");
 		}
@@ -439,22 +433,26 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 
 			@Override
 			public void run() {
-				Task task = null;
+				WrapedTask wt = null;
 				ResourceHolder holder = null;
 				logger.info(String.format("%s's runtime's dispacher started", taskDomain.getName()));
 				while(!Thread.currentThread().isInterrupted()) {
 					try {
-						task = getResource().getQueue().take();
+						wt = getResource().getQueue().take();
+						// XXX
+						release(wt.getResourceHolder(), ResourceType.QUEUE);
 						while(null == (holder = takeThread())) {
 							threadAvailableLock.lock();
 							threadAvailableCondition.await();
 						}
-						logger.info("Try to dispatch one task");
-						_execute(task ,holder);
+						logger.debug(String.format("%s acquired one resource:%s", Thread.currentThread().getName(), holder));
+						logger.debug(String.format("%s try to dispatch one task", Thread.currentThread().getName()));
+						wt.setHolder(holder);
+						_execute(wt);
 					} catch (InterruptedException e) {
-						logger.error(String.format("%s interrupted", DISPATCHER_THREAD_NAME), e);
+						logger.error(String.format("%s interrupted", Thread.currentThread().getName()), e);
 					} catch (Throwable t) {
-						logger.error("Disptache one task failed", t);
+						logger.error("Disptach one task failed", t);
 					} finally {
 						// XXX
 					}
@@ -462,7 +460,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 				logger.info(String.format("%s's runtime's dispacher stoped", taskDomain.getName()));
 			}
 			
-		});
+		}, String.format("Task-Domain-Runtime-%s-Dispatcher-Thread", taskDomain.getName()));
 		dispatcherThread.start();
 	}
 	
@@ -501,7 +499,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		return succeedTasks.get();
 	}
 
-	public long getFailedTasks() {setDefaultRuntime
+	public long getFailedTasks() {
 		return failedTasks.get();
 	}
 

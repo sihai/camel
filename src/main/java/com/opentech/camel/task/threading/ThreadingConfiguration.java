@@ -69,4 +69,9 @@ public class ThreadingConfiguration {
 	public int getThreadCount() {
 		return threadCount;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("{mode: %s, threadCount: %d}", mode, threadCount);
+	}
 }

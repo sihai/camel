@@ -17,7 +17,7 @@ package com.opentech.camel.task.resource;
 
 import java.util.concurrent.BlockingQueue;
 
-import com.opentech.camel.task.Task;
+import com.opentech.camel.task.executor.WrapedTask;
 
 /**
  * Resource used by this task domain, such as queue etc.
@@ -46,7 +46,7 @@ public class TaskDomainResource {
 	/**
 	 * Queue used by this task domain
 	 */
-	private BlockingQueue<Task> queue;
+	private BlockingQueue<WrapedTask> queue;
 	
 
 	/**
@@ -55,7 +55,7 @@ public class TaskDomainResource {
 	 * @param maxThreadCount
 	 * @param queue
 	 */
-	public TaskDomainResource(int minThreadCount, int maxThreadCount, BlockingQueue<Task> queue) {
+	public TaskDomainResource(int minThreadCount, int maxThreadCount, BlockingQueue<WrapedTask> queue) {
 		this.minThreadCount = minThreadCount;
 		this.maxThreadCount = maxThreadCount;
 		this.queue = queue;
@@ -65,7 +65,7 @@ public class TaskDomainResource {
 	 * Get queue used by this task domain
 	 * @return
 	 */
-	public BlockingQueue<Task> getQueue() {
+	public BlockingQueue<WrapedTask> getQueue() {
 		return queue;
 	}
 	
@@ -74,5 +74,10 @@ public class TaskDomainResource {
 	 */
 	public void release() {
 		queue.clear();
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("{minThreadCount:%d, maxThreadCount:%d, queueRemainingCapacity:%d}", minThreadCount, maxThreadCount, queue.remainingCapacity());
 	}
 }

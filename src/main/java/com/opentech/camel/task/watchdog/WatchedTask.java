@@ -20,6 +20,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import com.opentech.camel.task.Task;
+import com.opentech.camel.task.executor.WrapedTask;
 
 /**
  * Watched by watchdog
@@ -36,7 +37,7 @@ public class WatchedTask implements Delayed {
 	/**
 	 * 
 	 */
-	private Task task;
+	private WrapedTask wt;
 	
 	/**
 	 * End timestamp of this task
@@ -49,9 +50,9 @@ public class WatchedTask implements Delayed {
 	 * @param task
 	 * @param endTime
 	 */
-	public WatchedTask(Future future, Task task, long endTime) {
+	public WatchedTask(Future future, WrapedTask wt, long endTime) {
 		this.future = future;
-		this.task = task;
+		this.wt = wt;
 		this.endTime = endTime;
 	}
 	
@@ -80,8 +81,8 @@ public class WatchedTask implements Delayed {
 	 * 
 	 * @return
 	 */
-	public Task getTask() {
-		return task;
+	public WrapedTask getWt() {
+		return wt;
 	}
 
 }

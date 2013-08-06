@@ -244,9 +244,9 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 		
 		// 
 		for(TaskDomainRuntime r : runtimeMap.values()) {
-			/*if(ReourceControlMode.RESERVED == r.getResourceConfiguration().getThreadingConfiguration().getMode()) {
+			//if(ReourceControlMode.RESERVED == r.getResourceConfiguration().getThreadingConfiguration().getMode()) {
 				runtime.setDefaultRuntime(defaultRuntime);
-			}*/
+			//}
 			r.setThreadpool(threadpool);
 			r.setWatchdog(watchdog);
 		}

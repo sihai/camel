@@ -71,4 +71,9 @@ public class QueuingConfiguration {
 	public int getQueueCapacity() {
 		return queueCapacity;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("{mode: %s, queueCapacity: %d}", mode, queueCapacity);
+	}
 }

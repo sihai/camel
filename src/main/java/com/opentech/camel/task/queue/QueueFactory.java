@@ -18,7 +18,7 @@ package com.opentech.camel.task.queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import com.opentech.camel.task.Task;
+import com.opentech.camel.task.executor.WrapedTask;
 
 /**
  * 
@@ -78,9 +78,9 @@ public class QueueFactory {
 	 * 
 	 * @return
 	 */
-	public BlockingQueue<Task> build() {
+	public BlockingQueue<WrapedTask> build() {
 		if(QueueMode.THREAD_SAFE == mode) {
-			return new ArrayBlockingQueue<Task>(capacity);
+			return new ArrayBlockingQueue<WrapedTask>(capacity);
 		} else if(QueueMode.UN_THREAD_SAFE == mode) {
 			throw new IllegalArgumentException("Not supported un thread safe queue at now");
 		} else {

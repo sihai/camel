@@ -15,11 +15,16 @@
  */
 package com.opentech.camel.task.threading;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.opentech.camel.task.executor.WrapedTask;
 import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
@@ -32,6 +37,8 @@ import com.opentech.camel.task.resource.ResourceType;
  */
 public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 
+	private static final Log logger = LogFactory.getLog(DefaultThreadPool.class);
+	
 	/**
 	 * 
 	 */
@@ -59,6 +66,40 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 	
 	/**
 	 * 
+	 */
+	private ConcurrentHashMap<String, WrapedTask> pengingReleaseThreadRequest;
+	
+	/**
+	 * 
+	 */
+	private SynchronousQueue workqueue = new SynchronousQueue() {
+
+		@Override
+		public Object take() throws InterruptedException {
+			release();
+			return super.take();
+		}
+
+		@Override
+		public Object poll(long timeout, TimeUnit unit) throws InterruptedException {
+			release();
+			return super.poll(timeout, unit);
+		}
+		
+		/**
+		 * 
+		 */
+		private void release() {
+			WrapedTask wt = pengingReleaseThreadRequest.remove(Thread.currentThread().getName());
+			if(null != wt) {
+				wt.getResourceHolder().getRuntime().release(wt.getResourceHolder(), ResourceType.THREAD);
+			}
+		}
+		
+	};
+	
+	/**
+	 * 
 	 * @param coreThreadCount
 	 * @param maxThreadCount
 	 * @param keepAliveTime
@@ -75,15 +116,16 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 	@Override
 	public void initialize() {
 		super.initialize();
-		innerThreadPool = new ThreadPoolExecutor(coreThreadCount, maxThreadCount, keepAliveTime, TimeUnit.MILLISECONDS, new SynchronousQueue<Runnable>(), threadFactory) {
+		pengingReleaseThreadRequest = new ConcurrentHashMap<String, WrapedTask>();
+		innerThreadPool = new ThreadPoolExecutor(coreThreadCount, maxThreadCount, keepAliveTime, TimeUnit.MILLISECONDS, workqueue, threadFactory) {
 
 			@Override
 			protected void beforeExecute(Thread t, Runnable r) {
 				super.beforeExecute(t, r);
 				if(r instanceof WrapedTask) {
 					WrapedTask wt = ((WrapedTask)r);
-					wt.getToken().getRuntime().release(wt.getToken(), ResourceType.QUEUE);
-					wt.getToken().getRuntime().acquired(wt.getToken(), ResourceType.THREAD);
+					//XXX NO NEED
+					//wt.getToken().getRuntime().release(wt.getToken(), ResourceType.QUEUE);
 				}
 			}
 
@@ -92,9 +134,14 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 				super.afterExecute(r, t);
 				if(r instanceof WrapedTask) {
 					WrapedTask wt = ((WrapedTask)r);
-					wt.getToken().getRuntime().release(wt.getToken(), ResourceType.THREAD);
+					if(null != pengingReleaseThreadRequest.putIfAbsent(Thread.currentThread().getName(), wt)) {
+						throw new IllegalStateException("OMG Bug");
+					}
+					// XXX Release thread resource here, not safe, because of thread not really released here
+					//wt.getResourceHolder().getRuntime().release(wt.getResourceHolder(), ResourceType.THREAD);
 				}
 			}
+			
 			
 		};
 	}
@@ -103,6 +150,8 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 	public void shutdown() {
 		super.shutdown();
 		innerThreadPool.shutdown();
+		workqueue.clear();
+		pengingReleaseThreadRequest.clear();
 	}
 
 	@Override
@@ -122,11 +171,60 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 
 	@Override
 	public void execute(Runnable runnable) {
-		innerThreadPool.execute(runnable);
+		// XXX
+		while(!_execute(runnable)) {
+			// XXX
+			//Thread.yield();
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				logger.error("", e);
+			}
+		}
+	}
+	
+	/**
+	 * 
+	 * @param runnable
+	 * @return
+	 */
+	private boolean _execute(Runnable runnable) {
+		try {
+			innerThreadPool.execute(runnable);
+			return true;
+		} catch (RejectedExecutionException e) {
+			logger.error("DefaultThreadPool RejectedExecutionException", e);
+			return false;
+		}
 	}
 
 	@Override
 	public Future submit(Runnable runnable) {
-		return innerThreadPool.submit(runnable);
+		// XXX
+		Future f = null;
+		while(null != (f = _submit(runnable))) {
+			// XXX
+			//Thread.yield();
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				logger.error("DefaultThreadPool RejectedExecutionException", e);
+			}
+		}
+		return f;
+	}
+	
+	/**
+	 * 
+	 * @param runnable
+	 * @return
+	 */
+	private Future _submit(Runnable runnable) {
+		try {
+			return innerThreadPool.submit(runnable);
+		} catch (RejectedExecutionException e) {
+			logger.error("DefaultThreadPool RejectedExecutionException", e);
+			return null;
+		}
 	}
 }

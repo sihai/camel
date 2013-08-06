@@ -54,13 +54,6 @@ public interface TaskDomainResourceController extends LifeCycle {
 	ResourceHolder acquire(ResourceType type) throws ResourceLimitException;
 	
 	/**
-	 * 
-	 * @param holder
-	 * @param type
-	 */
-	void acquired(ResourceHolder holder, ResourceType type);
-	
-	/**
 	 * release resource for one task
 	 * @param token
 	 */

@@ -20,6 +20,7 @@ import java.util.concurrent.DelayQueue;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.opentech.camel.task.Status;
 import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
 
 /**
@@ -64,9 +65,12 @@ public class DefaultWatchdog extends AbstractLifeCycle implements Watchdog {
 					try {
 						// TODO
 						WatchedTask wt = watchdogQueue.take();
-						wt.getFuture().cancel(true);
-						wt.getTask().timeout();
-						wt.getTask().after();
+						// XXX
+						if(Status.RUNING == wt.getWt().getTask().getStatus()) {
+							wt.getFuture().cancel(true);
+							wt.getWt().getTask().timeout();
+							wt.getWt().getTask().after();
+						}
 					} catch (Throwable t) {
 						logger.error("Watchdog Error", t);
 					}
@@ -89,4 +93,8 @@ public class DefaultWatchdog extends AbstractLifeCycle implements Watchdog {
 		watchdogQueue.put(wt);
 	}
 
+	@Override
+	public void remove(WatchedTask wt) {
+		watchdogQueue.remove(wt);
+	}
 }

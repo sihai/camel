@@ -83,4 +83,9 @@ public class ResourceConfiguration {
 	public void setQueuingConfiguration(QueuingConfiguration queuingConfiguration) {
 		this.queuingConfiguration = queuingConfiguration;
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("{threadingConfiguration: %s, queuingConfiguration: %s}", threadingConfiguration.toString(), queuingConfiguration.toString());
+	}
 }

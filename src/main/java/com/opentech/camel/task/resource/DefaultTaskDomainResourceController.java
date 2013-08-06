@@ -47,6 +47,10 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 	 */
 	private AtomicInteger queueSize;
 	
+	private AtomicInteger allocedThreadCount = new AtomicInteger(0);
+	
+	private AtomicInteger releaseThreadCount = new AtomicInteger(0);
+	
 	/**
 	 * 
 	 * @param resourceConfiguration
@@ -89,22 +93,20 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 
 	@Override
 	public ResourceHolder acquire() throws ResourceLimitException {
-		if(usedThreadCount.incrementAndGet() <= resourceConfiguration.getThreadingConfiguration().getThreadCount()) {
-			return new ResourceHolder(ResourceType.THREAD);
+		try {
+			return acquire(ResourceType.THREAD);
+		} catch (ResourceLimitException e) {
+			return acquire(ResourceType.QUEUE);
 		}
-		usedThreadCount.decrementAndGet();
-		if(queueSize.incrementAndGet() <= resourceConfiguration.getQueuingConfiguration().getQueueCapacity()) {
-			return new ResourceHolder(ResourceType.QUEUE);
-		}
-		queueSize.decrementAndGet();
-		throw new ResourceLimitException(String.format("usedThreadCount:%d, maxThreadCount:%d, queueCapacity:%d, queueSize:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount(), resourceConfiguration.getQueuingConfiguration().getQueueCapacity(), queueSize.intValue()));
 	}
-	
 
 	@Override
 	public ResourceHolder acquire(ResourceType type) throws ResourceLimitException {
 		if(ResourceType.THREAD == type) {
 			if(usedThreadCount.incrementAndGet() <= resourceConfiguration.getThreadingConfiguration().getThreadCount()) {
+				allocedThreadCount.incrementAndGet();
+				System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
+				System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
 				return new ResourceHolder(ResourceType.THREAD);
 			}
 			usedThreadCount.decrementAndGet();
@@ -121,44 +123,32 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 	}
 
 	@Override
-	public void acquired(ResourceHolder holder, ResourceType type) {
-		if(type == holder.getType()) {
-			return;
-		} else if(null != holder.getType()) {
-			throw new IllegalStateException(String.format("Aready hold resource type:%s", holder.getType()));
-		} else {
-			if(ResourceType.THREAD == type) {
-				usedThreadCount.decrementAndGet();
-			} else if(ResourceType.QUEUE == type) {
-				queueSize.decrementAndGet();
-			}
-		}
-	}
-	
-	@Override
 	public void release(ResourceHolder holder) {
-		ResourceType type = holder.getType();
-		if(ResourceType.THREAD == type) {
-			usedThreadCount.decrementAndGet();
-		} else if(ResourceType.QUEUE == type) {
-			queueSize.decrementAndGet();
-		} else {
-			throw new IllegalArgumentException(String.format("Unknown resource type:%s", holder));
-		}
+		release(holder, holder.getType());
 	}
 	
 	@Override
 	public void release(ResourceHolder holder, ResourceType type) {
-		/*if(holder.getType() != type) {
-			throw new IllegalStateException(String.format("ResourceHolder not hold resource type:%s", type));
-		}*/
+		if(holder.getType() != type) {
+			return;
+			//throw new IllegalStateException(String.format("ResourceHolder not hold resource type:%s", type));
+		}
 		
 		if(ResourceType.THREAD == type) {
 			usedThreadCount.decrementAndGet();
+			releaseThreadCount.incrementAndGet();
+			System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
+			System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
 		} else if(ResourceType.QUEUE == type) {
 			queueSize.decrementAndGet();
 		} else {
 			throw new IllegalArgumentException(String.format("Unknown resource type:%s", type));
 		}
+		holder.setType(null);
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("{resourceConfiguration: %s, resource: %s, usedThreadCount: %d, queueSize: %d}", resourceConfiguration.toString(), resource.toString(), usedThreadCount.get(), queueSize.get());
 	}
 }

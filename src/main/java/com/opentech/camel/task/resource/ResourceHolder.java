@@ -59,6 +59,14 @@ public class ResourceHolder {
 	public ResourceType getType() {
 		return type;
 	}
+	
+	/**
+	 * 
+	 * @param type
+	 */
+	public void setType(ResourceType type) {
+		this.type = type;
+	}
 
 	/**
 	 * 
@@ -74,5 +82,10 @@ public class ResourceHolder {
 	 */
 	public void setRuntime(TaskDomainRuntime runtime) {
 		this.runtime = runtime;
+	}
+	
+	@Override
+	public String toString() {
+		return String.format("{type: %s, runtime: %s}", type, runtime.getTaskDomain().getName());
 	}
 }

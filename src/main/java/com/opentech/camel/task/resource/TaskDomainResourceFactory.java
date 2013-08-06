@@ -17,7 +17,7 @@ package com.opentech.camel.task.resource;
 
 import java.util.concurrent.BlockingQueue;
 
-import com.opentech.camel.task.Task;
+import com.opentech.camel.task.executor.WrapedTask;
 
 /**
  * 
@@ -46,7 +46,7 @@ public class TaskDomainResourceFactory {
 	/**
 	 * Queue used by this task domain
 	 */
-	private BlockingQueue<Task> queue;
+	private BlockingQueue<WrapedTask> queue;
 	
 	/**
 	 * 
@@ -88,7 +88,7 @@ public class TaskDomainResourceFactory {
 	 * @param queue
 	 * @return
 	 */
-	public TaskDomainResourceFactory withQueue(BlockingQueue<Task> queue) {
+	public TaskDomainResourceFactory withQueue(BlockingQueue<WrapedTask> queue) {
 		this.queue = queue;
 		return this;
 	}
