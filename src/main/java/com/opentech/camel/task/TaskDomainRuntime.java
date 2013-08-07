@@ -404,27 +404,15 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		return timeout;
 	}
 	
-	private volatile String lockInfo;
 	/**
 	 * 
 	 */
 	private void threadAvailable() {
-		boolean locked = false;
-		String threadName = Thread.currentThread().getName();
 		try {
-			System.out.println(String.format("threadAvailableLock is locked:%s", ((ReentrantLock)threadAvailableLock).isLocked()));
-			if(((ReentrantLock)threadAvailableLock).isLocked()) {
-				System.out.println(lockInfo);
-			}
-			//locked = threadAvailableLock.tryLock();
-			//if(locked) {
 			threadAvailableLock.lock();
-				lockInfo = String.format("%s locked threadAvailableLock", threadName);
-				threadAvailableCondition.signalAll();
-			//}
+			threadAvailableCondition.signalAll();
 		} finally {
 			threadAvailableLock.unlock();
-			System.out.println(String.format("%s unlock threadAvailableLock", threadName));
 		}
 	}
 	
