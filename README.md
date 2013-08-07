@@ -1,4 +1,4 @@
 camel
 =====
 
-A thread pool supported weights 
+A thread pool supported service isolation 
