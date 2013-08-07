@@ -259,9 +259,42 @@ public class BootstrapTest {
 		System.out.println(String.format("TPS: %f", (600 * 8) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
+
+	@Test
+	// 实测 TPS: 15.360492
+	public void testDomainThreadReservedQueueReserved_TPS_16() throws Exception {
+		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 8);
+		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 32);
+		ResourceConfiguration configuration = new ResourceConfiguration();
+		configuration.setQueuingConfiguration(queuingConfiguration);
+		configuration.setThreadingConfiguration(threadingConfiguration);
+		TaskDomain domain = new TaskDomain("test", configuration);
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.setCoreThreadCount(16);
+		bootstrap.setMaxThreadCount(16);
+		bootstrap.setQueueCapacity(64);
+		bootstrap.register(domain);
+		
+		Executor executor = bootstrap.bootstrap();
+		
+		int i = 60;
+		CountDownLatch latch = new CountDownLatch(60 * 16);
+		long start = System.currentTimeMillis();
+		while(i-- > 0) {
+			for(int j = 0; j < 8; j++) {
+				for(int n = 0; n < 2; n++) {
+					executor.execute(createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch));
+				}
+				Thread.sleep(125);
+			}
+		}
+		latch.await();
+		System.out.println(String.format("TPS: %f", (60 * 16) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		executor.shutdown();
+	}
 	
 	@Test
-	// 实测 TPS: 7.959473
+	// 实测 122.750376
 	public void testDomainThreadReservedQueueReserved_TPS_128() throws Exception {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
@@ -278,7 +311,39 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 60;
-		CountDownLatch latch = new CountDownLatch(60 * 16);
+		CountDownLatch latch = new CountDownLatch(60 * 128);
+		long start = System.currentTimeMillis();
+		while(i-- > 0) {
+			for(int j = 0; j < 8; j++) {
+				for(int n = 0; n < 16; n++) {
+					executor.execute(createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch));
+				}
+				Thread.sleep(125);
+			}
+		}
+		latch.await();
+		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		executor.shutdown();
+	}
+	
+	@Test
+	public void testDomainThreadReservedQueueReserved_TPS_128_ResourceLimitException_Send_Speed_Big_Then_128() throws Exception {
+		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
+		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
+		ResourceConfiguration configuration = new ResourceConfiguration();
+		configuration.setQueuingConfiguration(queuingConfiguration);
+		configuration.setThreadingConfiguration(threadingConfiguration);
+		TaskDomain domain = new TaskDomain("test", configuration);
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.setCoreThreadCount(128);
+		bootstrap.setMaxThreadCount(128);
+		bootstrap.setQueueCapacity(512);
+		bootstrap.register(domain);
+		
+		Executor executor = bootstrap.bootstrap();
+		
+		int i = 60;
+		CountDownLatch latch = new CountDownLatch(60 * 128);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
@@ -289,7 +354,50 @@ public class BootstrapTest {
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (60 * 16) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		executor.shutdown();
+	}
+	
+	@Test
+	// 实测 TPS: 125.404134
+	public void testDomainThreadReservedQueueReserved_TPS_128_Dealwith_ResourceLimitException_Send_Speed_Big_Then_128() throws Exception {
+		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
+		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
+		ResourceConfiguration configuration = new ResourceConfiguration();
+		configuration.setQueuingConfiguration(queuingConfiguration);
+		configuration.setThreadingConfiguration(threadingConfiguration);
+		TaskDomain domain = new TaskDomain("test", configuration);
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.setCoreThreadCount(128);
+		bootstrap.setMaxThreadCount(128);
+		bootstrap.setQueueCapacity(512);
+		bootstrap.register(domain);
+		
+		Executor executor = bootstrap.bootstrap();
+		
+		int i = 60;
+		CountDownLatch latch = new CountDownLatch(60 * 128);
+		long start = System.currentTimeMillis();
+		while(i-- > 0) {
+			for(int j = 0; j < 8; j++) {
+				for(int n = 0; n < 16; n++) {
+					Task task = createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+					for(;;) {
+						try {
+							executor.execute(task);
+							break;
+						} catch (ResourceLimitException e) {
+							e.printStackTrace();
+							logger.error("Resource Limited", e);
+							Thread.yield();
+						}
+					}
+				}
+				Thread.sleep(100);
+			}
+		}
+		latch.await();
+		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 	

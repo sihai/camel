@@ -15,10 +15,11 @@
  */
 package com.opentech.camel.task.threading;
 
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -70,9 +71,9 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 	private ConcurrentHashMap<String, WrapedTask> pengingReleaseThreadRequest;
 	
 	/**
-	 * 
+	 * XXX
 	 */
-	private SynchronousQueue workqueue = new SynchronousQueue() {
+	private BlockingQueue workqueue = new LinkedBlockingQueue() {
 
 		@Override
 		public Object take() throws InterruptedException {
@@ -90,6 +91,13 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 		 * 
 		 */
 		private void release() {
+			logger.debug(String
+					.format("innerThreadPool: {corePoolSize:%d, maximumPoolSize:%d, poolSize:%d, activeCount:%d, queuedCount:%d}",
+							innerThreadPool.getCorePoolSize(),
+							innerThreadPool.getMaximumPoolSize(),
+							innerThreadPool.getPoolSize(),
+							innerThreadPool.getActiveCount(),
+							innerThreadPool.getQueue().size()));
 			WrapedTask wt = pengingReleaseThreadRequest.remove(Thread.currentThread().getName());
 			if(null != wt) {
 				wt.getResourceHolder().getRuntime().release(wt.getResourceHolder(), ResourceType.THREAD);
@@ -194,6 +202,7 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 			return true;
 		} catch (RejectedExecutionException e) {
 			logger.error("DefaultThreadPool RejectedExecutionException", e);
+			//System.exit(1);
 			return false;
 		}
 	}
@@ -208,7 +217,7 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException e) {
-				logger.error("DefaultThreadPool RejectedExecutionException", e);
+				logger.error("DefaultThreadPool InterruptedException", e);
 			}
 		}
 		return f;
@@ -224,6 +233,7 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 			return innerThreadPool.submit(runnable);
 		} catch (RejectedExecutionException e) {
 			logger.error("DefaultThreadPool RejectedExecutionException", e);
+			//System.exit(1);
 			return null;
 		}
 	}

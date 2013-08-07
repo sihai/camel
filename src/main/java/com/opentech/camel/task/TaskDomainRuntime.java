@@ -15,6 +15,7 @@
  */
 package com.opentech.camel.task;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -248,6 +249,8 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			}
 		} else if(defaultRuntime == holder.getRuntime()) {
 			defaultRuntime.release(holder);
+		} else {
+			throw new IllegalStateException(String.format("null of ResourceHolder.runtime, runtime:%s", holder));
 		}
 	}
 	
@@ -261,6 +264,8 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			}
 		} else if(defaultRuntime == holder.getRuntime()) {
 			defaultRuntime.release(holder, type);
+		} else {
+			throw new IllegalStateException(String.format("null of ResourceHolder.runtime, runtime:%s", holder));
 		}
 	}
 
@@ -399,15 +404,27 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		return timeout;
 	}
 	
+	private volatile String lockInfo;
 	/**
 	 * 
 	 */
 	private void threadAvailable() {
+		boolean locked = false;
+		String threadName = Thread.currentThread().getName();
 		try {
+			System.out.println(String.format("threadAvailableLock is locked:%s", ((ReentrantLock)threadAvailableLock).isLocked()));
+			if(((ReentrantLock)threadAvailableLock).isLocked()) {
+				System.out.println(lockInfo);
+			}
+			//locked = threadAvailableLock.tryLock();
+			//if(locked) {
 			threadAvailableLock.lock();
-			threadAvailableCondition.signalAll();
+				lockInfo = String.format("%s locked threadAvailableLock", threadName);
+				threadAvailableCondition.signalAll();
+			//}
 		} finally {
 			threadAvailableLock.unlock();
+			System.out.println(String.format("%s unlock threadAvailableLock", threadName));
 		}
 	}
 	
@@ -442,11 +459,15 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 						// XXX
 						release(wt.getResourceHolder(), ResourceType.QUEUE);
 						while(null == (holder = takeThread())) {
-							threadAvailableLock.lock();
-							threadAvailableCondition.await();
+							try {
+								threadAvailableLock.lock();
+								threadAvailableCondition.await(10, TimeUnit.MILLISECONDS);
+							} finally {
+								threadAvailableLock.unlock();
+							}
 						}
 						logger.debug(String.format("%s acquired one resource:%s", Thread.currentThread().getName(), holder));
-						logger.debug(String.format("%s try to dispatch one task", Thread.currentThread().getName()));
+						logger.debug(String.format("%s try to execute one task", Thread.currentThread().getName()));
 						wt.setHolder(holder);
 						_execute(wt);
 					} catch (InterruptedException e) {
