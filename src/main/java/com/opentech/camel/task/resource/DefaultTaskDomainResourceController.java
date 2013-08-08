@@ -124,16 +124,7 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 
 	@Override
 	public void release(ResourceHolder holder) {
-		release(holder, holder.getType());
-	}
-	
-	@Override
-	public void release(ResourceHolder holder, ResourceType type) {
-		if(holder.getType() != type) {
-			return;
-			//throw new IllegalStateException(String.format("ResourceHolder not hold resource type:%s", type));
-		}
-		
+		ResourceType type = holder.getType();
 		if(ResourceType.THREAD == type) {
 			usedThreadCount.decrementAndGet();
 			//releaseThreadCount.incrementAndGet();

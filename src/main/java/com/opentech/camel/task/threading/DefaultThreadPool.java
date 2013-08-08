@@ -29,7 +29,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.opentech.camel.task.executor.WrapedTask;
 import com.opentech.camel.task.lifecycle.AbstractLifeCycle;
-import com.opentech.camel.task.resource.ResourceType;
 
 /**
  * 
@@ -100,7 +99,7 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 							innerThreadPool.getQueue().size()));
 			WrapedTask wt = pengingReleaseThreadRequest.remove(Thread.currentThread().getName());
 			if(null != wt) {
-				wt.getResourceHolder().getRuntime().release(wt.getResourceHolder(), ResourceType.THREAD);
+				wt.getHolder().release();
 			}
 		}
 		
@@ -130,11 +129,10 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 			@Override
 			protected void beforeExecute(Thread t, Runnable r) {
 				super.beforeExecute(t, r);
-				if(r instanceof WrapedTask) {
+				/*if(r instanceof WrapedTask) {
 					WrapedTask wt = ((WrapedTask)r);
 					//XXX NO NEED
-					//wt.getToken().getRuntime().release(wt.getToken(), ResourceType.QUEUE);
-				}
+				}*/
 			}
 
 			@Override
@@ -146,7 +144,6 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 						throw new IllegalStateException("OMG Bug");
 					}
 					// XXX Release thread resource here, not safe, because of thread not really released here
-					//wt.getResourceHolder().getRuntime().release(wt.getResourceHolder(), ResourceType.THREAD);
 				}
 			}
 			

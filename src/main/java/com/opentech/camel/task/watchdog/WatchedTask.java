@@ -19,7 +19,6 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.opentech.camel.task.Task;
 import com.opentech.camel.task.executor.WrapedTask;
 
 /**

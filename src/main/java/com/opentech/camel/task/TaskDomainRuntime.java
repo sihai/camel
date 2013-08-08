@@ -254,21 +254,6 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 			throw new IllegalStateException(String.format("null of ResourceHolder.runtime, runtime:%s", holder));
 		}
 	}
-	
-	@Override
-	public void release(ResourceHolder holder, ResourceType type) {
-		logger.debug(String.format("Release resource:%s, type:%s", holder, type));
-		if(this == holder.getRuntime()) {
-			resourceController.release(holder, type);
-			if(ResourceType.THREAD == type) {
-				threadAvailable();
-			}
-		} else if(defaultRuntime == holder.getRuntime()) {
-			defaultRuntime.release(holder, type);
-		} else {
-			throw new IllegalStateException(String.format("null of ResourceHolder.runtime, runtime:%s", holder));
-		}
-	}
 
 	//=========================================================
 	//			Executor
@@ -362,8 +347,8 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @param wt
 	 */
 	private void _execute(final WrapedTask wt) {
-		assert(null != wt.getResourceHolder().getRuntime());
-		logger.debug(String.format("Try execute one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
+		assert(null != wt.getHolder().getRuntime());
+		logger.debug(String.format("Try execute one task, task runtime:%s", wt.getHolder().getRuntime().getTaskDomain().getName()));
 		long timeout = getTaskTimeout(wt.getTask());
 		try {
 			if(Executor.NONE_TIMEOUT == timeout) {
@@ -383,12 +368,12 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @throws TaskException
 	 */
 	private void _queue(WrapedTask wt) throws TaskException {
-		assert(null != wt.getResourceHolder().getRuntime());
-		logger.debug(String.format("Try queue one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
+		assert(null != wt.getHolder().getRuntime());
+		logger.debug(String.format("Try queue one task, task runtime:%s", wt.getHolder().getRuntime().getTaskDomain().getName()));
 		try {
-			wt.getResourceHolder().getRuntime().getResource().getQueue().put(wt);
+			wt.getHolder().getRuntime().getResource().getQueue().put(wt);
 		} catch (InterruptedException e) {
-			release(wt.getResourceHolder(), ResourceType.QUEUE);
+			wt.getHolder().release();
 			Thread.currentThread().interrupt();
 			throw new TaskException("OMG, not possible, should never be interrupted");
 		}
@@ -451,7 +436,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 					try {
 						wt = getResource().getQueue().take();
 						// XXX
-						release(wt.getResourceHolder(), ResourceType.QUEUE);
+						wt.getHolder().release();
 						while(null == (holder = takeThread())) {
 							try {
 								threadAvailableLock.lock();

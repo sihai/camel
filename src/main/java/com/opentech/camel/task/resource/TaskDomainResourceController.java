@@ -58,11 +58,4 @@ public interface TaskDomainResourceController extends LifeCycle {
 	 * @param token
 	 */
 	void release(ResourceHolder token);
-	
-	/**
-	 * Try to release resource of type
-	 * @param token
-	 * @param type
-	 */
-	void release(ResourceHolder token, ResourceType type);
 }

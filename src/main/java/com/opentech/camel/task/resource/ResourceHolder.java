@@ -53,6 +53,13 @@ public class ResourceHolder {
 	}
 	
 	/**
+	 * synchronized
+	 */
+	public synchronized void release() {
+		runtime.release(this);
+	}
+	
+	/**
 	 * 
 	 * @return
 	 */
