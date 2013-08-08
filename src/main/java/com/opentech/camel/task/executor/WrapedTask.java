@@ -81,10 +81,6 @@ public abstract class WrapedTask implements Runnable {
 		return task;
 	}
 
-	public ResourceHolder getResourceHolder() {
-		return holder;
-	}
-
 	public ResourceHolder getHolder() {
 		return holder;
 	}

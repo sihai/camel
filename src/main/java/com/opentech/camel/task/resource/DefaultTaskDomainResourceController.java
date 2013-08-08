@@ -47,9 +47,9 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 	 */
 	private AtomicInteger queueSize;
 	
-	private AtomicInteger allocedThreadCount = new AtomicInteger(0);
+	//private AtomicInteger allocedThreadCount = new AtomicInteger(0);
 	
-	private AtomicInteger releaseThreadCount = new AtomicInteger(0);
+	//private AtomicInteger releaseThreadCount = new AtomicInteger(0);
 	
 	/**
 	 * 
@@ -104,9 +104,9 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 	public ResourceHolder acquire(ResourceType type) throws ResourceLimitException {
 		if(ResourceType.THREAD == type) {
 			if(usedThreadCount.incrementAndGet() <= resourceConfiguration.getThreadingConfiguration().getThreadCount()) {
-				allocedThreadCount.incrementAndGet();
-				System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
-				System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
+				//allocedThreadCount.incrementAndGet();
+				//System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
+				//System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
 				return new ResourceHolder(ResourceType.THREAD);
 			}
 			usedThreadCount.decrementAndGet();
@@ -136,9 +136,9 @@ public class DefaultTaskDomainResourceController extends AbstractLifeCycle imple
 		
 		if(ResourceType.THREAD == type) {
 			usedThreadCount.decrementAndGet();
-			releaseThreadCount.incrementAndGet();
-			System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
-			System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
+			//releaseThreadCount.incrementAndGet();
+			//System.out.println(String.format("allocedThreadCount:%d, releaseThreadCount:%d", allocedThreadCount.intValue(), releaseThreadCount.intValue()));
+			//System.out.println(String.format("usedThreadCount:%d, threadCount:%d", usedThreadCount.intValue(), resourceConfiguration.getThreadingConfiguration().getThreadCount()));
 		} else if(ResourceType.QUEUE == type) {
 			queueSize.decrementAndGet();
 		} else {

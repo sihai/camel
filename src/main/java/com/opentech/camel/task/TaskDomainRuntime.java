@@ -206,6 +206,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	/**
 	 * 
 	 */
+	@Override
 	public ResourceHolder acquire() throws ResourceLimitException {
 		ResourceHolder holder = null;
 		logger.debug(String.format("Try to acquire one resource from runtime of task domain:%s", taskDomain.getName()));
@@ -312,6 +313,11 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		totalTasks.incrementAndGet();
 	}
 	
+	@Override
+	public void release(String taskDomainName) {
+		// TODO Auto-generated method stub
+	}
+
 	/**
 	 * 
 	 * @return

@@ -148,6 +148,14 @@ public class DefaultExecutor extends AbstractLifeCycle implements Executor {
 		runtime.execute(task);
 	}
 	
+	@Override
+	public void release(String taskDomainName) {
+		TaskDomainRuntime runtime = runtimeMap.get(taskDomainName);
+		if(null != runtime) {
+			// TODO
+		}
+	}
+
 	//================================================================
 	//
 	//================================================================

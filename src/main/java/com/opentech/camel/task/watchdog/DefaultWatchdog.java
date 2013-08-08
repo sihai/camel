@@ -61,18 +61,28 @@ public class DefaultWatchdog extends AbstractLifeCycle implements Watchdog {
 
 			@Override
 			public void run() {
+				WatchedTask wt = null;
 				while(Thread.currentThread().isInterrupted()) {
 					try {
+						wt = null;
 						// TODO
-						WatchedTask wt = watchdogQueue.take();
+						wt = watchdogQueue.take();
 						// XXX
 						if(Status.RUNING == wt.getWt().getTask().getStatus()) {
 							wt.getFuture().cancel(true);
 							wt.getWt().getTask().timeout();
 							wt.getWt().getTask().after();
 						}
+					} catch (InterruptedException e) {
+						logger.error("Watchdog Interrupted", e);
+						Thread.currentThread().interrupt();
 					} catch (Throwable t) {
 						logger.error("Watchdog Error", t);
+					} finally {
+						// 释放资源
+						if(null != wt) {
+							wt.getWt().getHolder().getRuntime().release(wt.getWt().getHolder());
+						}
 					}
 				}
 			}

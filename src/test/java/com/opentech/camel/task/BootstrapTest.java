@@ -17,7 +17,6 @@ package com.opentech.camel.task;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.opentech.camel.task.exception.ResourceLimitException;
+import com.opentech.camel.task.exception.TaskException;
 import com.opentech.camel.task.executor.Executor;
 import com.opentech.camel.task.queue.QueuingConfiguration;
 import com.opentech.camel.task.resource.ResourceConfiguration;
@@ -33,7 +33,7 @@ import com.opentech.camel.task.resource.ResourceControlMode;
 import com.opentech.camel.task.threading.ThreadingConfiguration;
 
 /**
- * 
+ * Unit Test
  * @author sihai
  *
  */
@@ -80,8 +80,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -102,8 +102,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -128,8 +128,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -153,8 +153,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -178,8 +178,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -203,8 +203,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 1);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 1);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(2);
@@ -235,8 +235,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 4);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 32);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(8);
@@ -266,8 +266,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 8);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 32);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(16);
@@ -299,8 +299,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(128);
@@ -331,8 +331,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(128);
@@ -364,8 +364,8 @@ public class BootstrapTest {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
 		ResourceConfiguration configuration = new ResourceConfiguration();
-		configuration.setQueuingConfiguration(queuingConfiguration);
 		configuration.setThreadingConfiguration(threadingConfiguration);
+		configuration.setQueuingConfiguration(queuingConfiguration);
 		TaskDomain domain = new TaskDomain("test", configuration);
 		Bootstrap bootstrap = new Bootstrap();
 		bootstrap.setCoreThreadCount(128);
@@ -398,6 +398,142 @@ public class BootstrapTest {
 		}
 		latch.await();
 		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		executor.shutdown();
+	}
+	
+	@Test
+	// 实测
+	public void testTwoDomainThreadReservedQueueReserved_Resvered_TPS_Big_Then_64_Max_TPS_Less_Then_32() throws Exception {
+		ThreadingConfiguration reservedThreadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
+		QueuingConfiguration reservedQueuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 128);
+		ResourceConfiguration reservedConfiguration = new ResourceConfiguration();
+		reservedConfiguration.setThreadingConfiguration(reservedThreadingConfiguration);
+		reservedConfiguration.setQueuingConfiguration(reservedQueuingConfiguration);
+		final TaskDomain reservedDomain = new TaskDomain("reserved", reservedConfiguration);
+		
+		ThreadingConfiguration maxThreadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 32);
+		QueuingConfiguration maxQueuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 64);
+		ResourceConfiguration maxConfiguration = new ResourceConfiguration();
+		maxConfiguration.setThreadingConfiguration(maxThreadingConfiguration);
+		maxConfiguration.setQueuingConfiguration(maxQueuingConfiguration);
+		final TaskDomain maxDomain = new TaskDomain("max", maxConfiguration);
+		
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.setCoreThreadCount(128);
+		bootstrap.setMaxThreadCount(128);
+		bootstrap.setQueueCapacity(256);
+		bootstrap.register(reservedDomain);
+		bootstrap.register(maxDomain);
+		
+		final Executor executor = bootstrap.bootstrap();
+		final CountDownLatch threadLatch = new CountDownLatch(2);
+		
+		Thread reservedDomainSendThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				int i = 120;
+				CountDownLatch latch = new CountDownLatch(120 * 64);
+				long start = System.currentTimeMillis();
+				while(i-- > 0) {
+					for(int j = 0; j < 8; j++) {
+						for(int n = 0; n < 8; n++) {
+							Task task = createCounterTask(reservedDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+							for(;;) {
+								try {
+									executor.execute(task);
+									break;
+								} catch (ResourceLimitException e) {
+									//e.printStackTrace();
+									//logger.error("Resource Limited", e);
+									Thread.yield();
+								} catch (TaskException e) {
+									e.printStackTrace();
+									logger.error("TaskException", e);
+									break;
+								}
+							}
+						}
+						
+						try {
+							Thread.sleep(125);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+							Thread.currentThread().interrupt();
+							break;
+						}
+					}
+				}
+				try {
+					latch.await();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					Thread.currentThread().interrupt();
+				}
+				System.out.println(String.format("ReservedDomain TPS: %f", (120 * 64) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				threadLatch.countDown();
+			}
+			
+		});
+		
+		Thread maxDomainSendThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				int i = 120;
+				CountDownLatch latch = new CountDownLatch(120 * 32);
+				long start = System.currentTimeMillis();
+				while(i-- > 0) {
+					for(int j = 0; j < 8; j++) {
+						for(int n = 0; n < 4; n++) {
+							Task task = createCounterTask(reservedDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+							for(;;) {
+								try {
+									executor.execute(task);
+									break;
+								} catch (ResourceLimitException e) {
+									//e.printStackTrace();
+									//logger.error("Resource Limited", e);
+									Thread.yield();
+								} catch (TaskException e) {
+									e.printStackTrace();
+									logger.error("TaskException", e);
+									break;
+								}
+							}
+						}
+						
+						try {
+							Thread.sleep(125);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+							Thread.currentThread().interrupt();
+							break;
+						}
+					}
+				}
+				try {
+					latch.await();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					Thread.currentThread().interrupt();
+				}
+				System.out.println(String.format("MaxDomain TPS: %f", (120 * 32) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				threadLatch.countDown();
+			}
+			
+		});
+		
+		reservedDomainSendThread.start();
+		maxDomainSendThread.start();
+	
+		try {
+			threadLatch.await();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+		}
+		
 		executor.shutdown();
 	}
 	

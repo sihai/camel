@@ -42,4 +42,10 @@ public interface Executor extends LifeCycle {
 	 * @throws ResourceLimitException, TaskException
 	 */
 	void execute(final Task task) throws ResourceLimitException, TaskException;
+	
+	/**
+	 * force release resource of one task domain
+	 * @param taskDomainName
+	 */
+	void release(String taskDomainName);
 }
