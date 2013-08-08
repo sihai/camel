@@ -347,8 +347,8 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @param wt
 	 */
 	private void _execute(final WrapedTask wt) {
-		assert(null != wt.getHolder().getRuntime());
-		logger.debug(String.format("Try execute one task, task runtime:%s", wt.getHolder().getRuntime().getTaskDomain().getName()));
+		assert(null != wt.getResourceHolder().getRuntime());
+		logger.debug(String.format("Try execute one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
 		long timeout = getTaskTimeout(wt.getTask());
 		try {
 			if(Executor.NONE_TIMEOUT == timeout) {
@@ -368,12 +368,12 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * @throws TaskException
 	 */
 	private void _queue(WrapedTask wt) throws TaskException {
-		assert(null != wt.getHolder().getRuntime());
-		logger.debug(String.format("Try queue one task, task runtime:%s", wt.getHolder().getRuntime().getTaskDomain().getName()));
+		assert(null != wt.getResourceHolder().getRuntime());
+		logger.debug(String.format("Try queue one task, task runtime:%s", wt.getResourceHolder().getRuntime().getTaskDomain().getName()));
 		try {
-			wt.getHolder().getRuntime().getResource().getQueue().put(wt);
+			wt.getResourceHolder().getRuntime().getResource().getQueue().put(wt);
 		} catch (InterruptedException e) {
-			wt.getHolder().release();
+			wt.getResourceHolder().release();
 			Thread.currentThread().interrupt();
 			throw new TaskException("OMG, not possible, should never be interrupted");
 		}
@@ -436,7 +436,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 					try {
 						wt = getResource().getQueue().take();
 						// XXX
-						wt.getHolder().release();
+						wt.getResourceHolder().release();
 						while(null == (holder = takeThread())) {
 							try {
 								threadAvailableLock.lock();
@@ -447,7 +447,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 						}
 						logger.debug(String.format("%s acquired one resource:%s", Thread.currentThread().getName(), holder));
 						logger.debug(String.format("%s try to execute one task", Thread.currentThread().getName()));
-						wt.setHolder(holder);
+						wt.setResourceHolder(holder);
 						_execute(wt);
 					} catch (InterruptedException e) {
 						logger.error(String.format("%s interrupted", Thread.currentThread().getName()), e);

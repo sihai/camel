@@ -82,7 +82,7 @@ public class DefaultWatchdog extends AbstractLifeCycle implements Watchdog {
 						// 释放资源
 						if(null != wt) {
 							// XXX 貌似这里释放资源有问题
-							wt.getWt().getHolder().release();
+							wt.getWt().getResourceHolder().release();
 						}
 					}
 				}

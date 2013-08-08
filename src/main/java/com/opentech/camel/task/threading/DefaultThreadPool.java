@@ -99,7 +99,7 @@ public class DefaultThreadPool extends AbstractLifeCycle implements ThreadPool {
 							innerThreadPool.getQueue().size()));
 			WrapedTask wt = pengingReleaseThreadRequest.remove(Thread.currentThread().getName());
 			if(null != wt) {
-				wt.getHolder().release();
+				wt.getResourceHolder().release();
 			}
 		}
 		
