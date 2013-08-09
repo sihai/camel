@@ -230,7 +230,7 @@ public class BootstrapTest {
 	}
 	
 	@Test
-	// 实测 TPS: 7.960661
+	// 实测 TPS: 7.927195
 	public void testDomainThreadReservedQueueReserved_TPS_8() throws Exception {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 4);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 32);
@@ -247,21 +247,39 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 600;
-		CountDownLatch latch = new CountDownLatch(600 * 8);
+		CountDownLatch latch = new CountDownLatch(600 * 16);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
-				executor.execute(createCounterTask(domain.getName(), String.format("%d-%d", i, j), 1000, latch));
-				Thread.sleep(125);
+				for(int n = 0; n < 2; n++) {
+					Task task = createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+					for(;;) {
+						try {
+							executor.execute(task);
+							break;
+						} catch (ResourceLimitException e) {
+							//e.printStackTrace();
+							logger.error("Resource Limited", e);
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException ex) {
+								ex.printStackTrace();
+								Thread.currentThread().interrupt();
+								break;
+							}
+						}
+					}
+				}
+				Thread.sleep(100);
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (600 * 8) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (600 * 16) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 
 	@Test
-	// 实测 TPS: 15.360492
+	// 实测 TPS: 15.240998
 	public void testDomainThreadReservedQueueReserved_TPS_16() throws Exception {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 8);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 32);
@@ -278,23 +296,39 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 60;
-		CountDownLatch latch = new CountDownLatch(60 * 16);
+		CountDownLatch latch = new CountDownLatch(60 * 24);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
-				for(int n = 0; n < 2; n++) {
-					executor.execute(createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch));
+				for(int n = 0; n < 3; n++) {
+					Task task = createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+					for(;;) {
+						try {
+							executor.execute(task);
+							break;
+						} catch (ResourceLimitException e) {
+							//e.printStackTrace();
+							logger.error("Resource Limited", e);
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException ex) {
+								ex.printStackTrace();
+								Thread.currentThread().interrupt();
+								break;
+							}
+						}
+					}
 				}
-				Thread.sleep(125);
+				Thread.sleep(100);
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (60 * 16) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (60 * 24) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 	
 	@Test
-	// 实测 122.750376
+	// 实测 TPS: 120.281246
 	public void testDomainThreadReservedQueueReserved_TPS_128() throws Exception {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
@@ -311,22 +345,38 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 60;
-		CountDownLatch latch = new CountDownLatch(60 * 128);
+		CountDownLatch latch = new CountDownLatch(60 * 136);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
-				for(int n = 0; n < 16; n++) {
-					executor.execute(createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch));
+				for(int n = 0; n < 17; n++) {
+					Task task = createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+					for(;;) {
+						try {
+							executor.execute(task);
+							break;
+						} catch (ResourceLimitException e) {
+							//e.printStackTrace();
+							logger.error("Resource Limited", e);
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException ex) {
+								ex.printStackTrace();
+								Thread.currentThread().interrupt();
+								break;
+							}
+						}
+					}
 				}
-				Thread.sleep(125);
+				Thread.sleep(100);
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (60 * 136) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 	
-	@Test
+	@Test(expected = ResourceLimitException.class)
 	public void testDomainThreadReservedQueueReserved_TPS_128_ResourceLimitException_Send_Speed_Big_Then_128() throws Exception {
 		ThreadingConfiguration threadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration queuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 256);
@@ -343,18 +393,18 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 60;
-		CountDownLatch latch = new CountDownLatch(60 * 128);
+		CountDownLatch latch = new CountDownLatch(60 * 136);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
-				for(int n = 0; n < 16; n++) {
+				for(int n = 0; n < 17; n++) {
 					executor.execute(createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch));
 				}
 				Thread.sleep(100);
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (60 * 136) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 	
@@ -376,11 +426,11 @@ public class BootstrapTest {
 		Executor executor = bootstrap.bootstrap();
 		
 		int i = 60;
-		CountDownLatch latch = new CountDownLatch(60 * 128);
+		CountDownLatch latch = new CountDownLatch(60 * 136);
 		long start = System.currentTimeMillis();
 		while(i-- > 0) {
 			for(int j = 0; j < 8; j++) {
-				for(int n = 0; n < 16; n++) {
+				for(int n = 0; n < 17; n++) {
 					Task task = createCounterTask(domain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
 					for(;;) {
 						try {
@@ -389,7 +439,13 @@ public class BootstrapTest {
 						} catch (ResourceLimitException e) {
 							e.printStackTrace();
 							logger.error("Resource Limited", e);
-							Thread.yield();
+							try {
+								Thread.sleep(10);
+							} catch (InterruptedException ex) {
+								ex.printStackTrace();
+								Thread.currentThread().interrupt();
+								break;
+							}
 						}
 					}
 				}
@@ -397,7 +453,7 @@ public class BootstrapTest {
 			}
 		}
 		latch.await();
-		System.out.println(String.format("TPS: %f", (60 * 128) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+		System.out.println(String.format("TPS: %f", (60 * 136) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 		executor.shutdown();
 	}
 	
