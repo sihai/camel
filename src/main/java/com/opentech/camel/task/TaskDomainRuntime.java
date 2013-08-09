@@ -209,13 +209,17 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	@Override
 	public ResourceHolder acquire() throws ResourceLimitException {
 		ResourceHolder holder = null;
-		logger.debug(String.format("Try to acquire one resource from runtime of task domain:%s", taskDomain.getName()));
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Try to acquire one resource from runtime of task domain:%s", taskDomain.getName()));
+		}
 		try {
 			holder = resourceController.acquire();
 			holder.setRuntime(this);
 			return holder;
 		} catch (ResourceLimitException e) {
-			//logger.debug(String.format("There is no resource of runtime of task domain:%s", taskDomain.getName()));
+			if(logger.isDebugEnabled()) {
+				logger.debug(String.format("There is no resource of runtime of task domain:%s", taskDomain.getName()));
+			}
 			holder = tryBorrowFromDefaultRuntime();
 			holder.setRuntime(defaultRuntime);
 			return holder;
@@ -225,15 +229,22 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	@Override
 	public ResourceHolder acquire(ResourceType type) throws ResourceLimitException {
 		ResourceHolder holder = null;
-		//logger.debug(String.format("Try to acquire one resource type:%s from runtime of task domain:%s", type, taskDomain.getName()));
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Try to acquire one resource type:%s from runtime of task domain:%s", type, taskDomain.getName()));
+		}
 		try {
 			holder = resourceController.acquire(type);
 			holder.setRuntime(this);
 			return holder;
 		} catch (ResourceLimitException e) {
-			//logger.debug(String.format("There is no resource type:%s of runtime of task domain:%s", type, taskDomain.getName()));
+			if(logger.isDebugEnabled()) {
+				logger.debug(String.format("There is no resource type:%s of runtime of task domain:%s", type, taskDomain.getName()));
+			}
 			holder = this.tryBorrowFromDefaultRuntime(type);
 			holder.setRuntime(defaultRuntime);
+			if(logger.isDebugEnabled()) {
+				logger.debug(String.format("Brrow one resuource:%s of runtime of task domain:%s", holder, defaultRuntime.getTaskDomain().getName()));
+			}
 			return holder;
 		}
 	}
@@ -242,7 +253,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	 * 
 	 */
 	public void release(ResourceHolder holder) {
-		logger.debug(String.format("Release resource:%s", holder));
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Release resource:%s", holder));
+		}
 		if(this == holder.getRuntime()) {
 			resourceController.release(holder);
 			if(ResourceType.THREAD == holder.getType()) {
@@ -262,7 +275,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 	public void execute(final Task task) throws ResourceLimitException, TaskException {
 		requestTasks.incrementAndGet();
 		ResourceHolder holder = acquire();
-		logger.debug(String.format("acquired resource:%s", holder.toString()));
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("acquired resource:%s", holder.toString()));
+		}
 		ResourceType type = holder.getType();
 		
 		// new runnable
@@ -328,7 +343,9 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		if(null == defaultRuntime) {
 			throw new ResourceLimitException("Default runtime can not borrow resource from others");
 		}
-		//logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
+		if(logger.isDebugEnabled()) {
+			logger.debug(String.format("Try to acquire one resource type:%s from default runtime, original task domain:%s", type, taskDomain.getName()));
+		}
 		ResourceControlMode mode = null;
 		if(ResourceType.THREAD == type) {
 			mode = taskDomain.getResourceConfiguration().getThreadingConfiguration().getMode();
@@ -415,6 +432,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 		try {
 			return acquire(ResourceType.THREAD);
 		} catch (ResourceLimitException e) {
+			logger.error("Take thread filead", e);
 			return null;
 		}
 	}
@@ -440,7 +458,7 @@ public class TaskDomainRuntime implements LifeCycle, TaskDomainResourceControlle
 						while(null == (holder = takeThread())) {
 							try {
 								threadAvailableLock.lock();
-								threadAvailableCondition.await(10, TimeUnit.MILLISECONDS);
+								threadAvailableCondition.await(1000, TimeUnit.MILLISECONDS);
 							} finally {
 								threadAvailableLock.unlock();
 							}

@@ -403,6 +403,160 @@ public class BootstrapTest {
 	
 	@Test
 	// 实测
+	// ReservedDomain TPS: 45.930817
+	// MaxDomain TPS: 15.668694
+	public void testTwoDomainThreadReservedQueueReserved_Resvered_TPS_Big_Then_32_Max_TPS_Less_Then_16() throws Exception {
+		ThreadingConfiguration reservedThreadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 32);
+		QueuingConfiguration reservedQueuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 64);
+		ResourceConfiguration reservedConfiguration = new ResourceConfiguration();
+		reservedConfiguration.setThreadingConfiguration(reservedThreadingConfiguration);
+		reservedConfiguration.setQueuingConfiguration(reservedQueuingConfiguration);
+		final TaskDomain reservedDomain = new TaskDomain("reserved", reservedConfiguration);
+		
+		ThreadingConfiguration maxThreadingConfiguration = new ThreadingConfiguration(ResourceControlMode.MAX, 16);
+		QueuingConfiguration maxQueuingConfiguration = new QueuingConfiguration(ResourceControlMode.MAX, 32);
+		ResourceConfiguration maxConfiguration = new ResourceConfiguration();
+		maxConfiguration.setThreadingConfiguration(maxThreadingConfiguration);
+		maxConfiguration.setQueuingConfiguration(maxQueuingConfiguration);
+		final TaskDomain maxDomain = new TaskDomain("max", maxConfiguration);
+		
+		Bootstrap bootstrap = new Bootstrap();
+		bootstrap.setCoreThreadCount(64);
+		bootstrap.setMaxThreadCount(64);
+		bootstrap.setQueueCapacity(128);
+		bootstrap.register(reservedDomain);
+		bootstrap.register(maxDomain);
+		
+		final Executor executor = bootstrap.bootstrap();
+		final CountDownLatch threadLatch = new CountDownLatch(2);
+		
+		Thread reservedDomainSendThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				int i = 120;
+				CountDownLatch latch = new CountDownLatch(120 * 40);
+				long start = System.currentTimeMillis();
+				while(i-- > 0) {
+					for(int j = 0; j < 8; j++) {
+						for(int n = 0; n < 5; n++) {
+							Task task = createCounterTask(reservedDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+							for(;;) {
+								try {
+									executor.execute(task);
+									break;
+								} catch (ResourceLimitException e) {
+									//e.printStackTrace();
+									logger.error("Resource Limited", e);
+									//Thread.yield();
+									try {
+										Thread.sleep(10);
+									} catch (InterruptedException ex) {
+										ex.printStackTrace();
+										Thread.currentThread().interrupt();
+										break;
+									}
+								} catch (TaskException e) {
+									e.printStackTrace();
+									logger.error("TaskException", e);
+									break;
+								}
+							}
+						}
+						
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+							Thread.currentThread().interrupt();
+							break;
+						}
+					}
+				}
+				try {
+					latch.await();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					Thread.currentThread().interrupt();
+				}
+				System.out.println(String.format("ReservedDomain TPS: %f", (120 * 40) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				threadLatch.countDown();
+			}
+			
+		}, "Reserved-Domain-Send-Thread");
+		
+		Thread maxDomainSendThread = new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				int i = 120;
+				CountDownLatch latch = new CountDownLatch(120 * 24);
+				long start = System.currentTimeMillis();
+				while(i-- > 0) {
+					for(int j = 0; j < 8; j++) {
+						for(int n = 0; n < 3; n++) {
+							Task task = createCounterTask(maxDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+							for(;;) {
+								try {
+									executor.execute(task);
+									break;
+								} catch (ResourceLimitException e) {
+									//e.printStackTrace();
+									logger.error("Resource Limited", e);
+									//Thread.yield();
+									try {
+										Thread.sleep(10);
+									} catch (InterruptedException ex) {
+										ex.printStackTrace();
+										Thread.currentThread().interrupt();
+										break;
+									}
+								} catch (TaskException e) {
+									e.printStackTrace();
+									logger.error("TaskException", e);
+									break;
+								}
+							}
+						}
+						
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+							Thread.currentThread().interrupt();
+							break;
+						}
+					}
+				}
+				try {
+					latch.await();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+					Thread.currentThread().interrupt();
+				}
+				System.out.println(String.format("MaxDomain TPS: %f", (120 * 24) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				threadLatch.countDown();
+			}
+			
+		}, "Max-Domain-Send-Thread");
+		
+		reservedDomainSendThread.start();
+		maxDomainSendThread.start();
+	
+		try {
+			threadLatch.await();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+		}
+		
+		executor.shutdown();
+	}
+	
+	@Test
+	// 实测
+	//ReservedDomain TPS: 91.983098
+	//MaxDomain TPS: 31.150626
 	public void testTwoDomainThreadReservedQueueReserved_Resvered_TPS_Big_Then_64_Max_TPS_Less_Then_32() throws Exception {
 		ThreadingConfiguration reservedThreadingConfiguration = new ThreadingConfiguration(ResourceControlMode.RESERVED, 64);
 		QueuingConfiguration reservedQueuingConfiguration = new QueuingConfiguration(ResourceControlMode.RESERVED, 128);
@@ -433,11 +587,11 @@ public class BootstrapTest {
 			@Override
 			public void run() {
 				int i = 120;
-				CountDownLatch latch = new CountDownLatch(120 * 64);
+				CountDownLatch latch = new CountDownLatch(120 * 80);
 				long start = System.currentTimeMillis();
 				while(i-- > 0) {
 					for(int j = 0; j < 8; j++) {
-						for(int n = 0; n < 8; n++) {
+						for(int n = 0; n < 10; n++) {
 							Task task = createCounterTask(reservedDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
 							for(;;) {
 								try {
@@ -446,7 +600,14 @@ public class BootstrapTest {
 								} catch (ResourceLimitException e) {
 									//e.printStackTrace();
 									//logger.error("Resource Limited", e);
-									Thread.yield();
+									//Thread.yield();
+									try {
+										Thread.sleep(10);
+									} catch (InterruptedException ex) {
+										ex.printStackTrace();
+										Thread.currentThread().interrupt();
+										break;
+									}
 								} catch (TaskException e) {
 									e.printStackTrace();
 									logger.error("TaskException", e);
@@ -456,7 +617,7 @@ public class BootstrapTest {
 						}
 						
 						try {
-							Thread.sleep(125);
+							Thread.sleep(100);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 							Thread.currentThread().interrupt();
@@ -470,23 +631,23 @@ public class BootstrapTest {
 					e.printStackTrace();
 					Thread.currentThread().interrupt();
 				}
-				System.out.println(String.format("ReservedDomain TPS: %f", (120 * 64) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				System.out.println(String.format("ReservedDomain TPS: %f", (120 * 80) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 				threadLatch.countDown();
 			}
 			
-		});
+		}, "Reserved-Domain-Send-Thread");
 		
 		Thread maxDomainSendThread = new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 				int i = 120;
-				CountDownLatch latch = new CountDownLatch(120 * 32);
+				CountDownLatch latch = new CountDownLatch(120 * 40);
 				long start = System.currentTimeMillis();
 				while(i-- > 0) {
 					for(int j = 0; j < 8; j++) {
-						for(int n = 0; n < 4; n++) {
-							Task task = createCounterTask(reservedDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
+						for(int n = 0; n < 5; n++) {
+							Task task = createCounterTask(maxDomain.getName(), String.format("%d-%d-%n", i, j, n), 1000, latch);
 							for(;;) {
 								try {
 									executor.execute(task);
@@ -494,7 +655,14 @@ public class BootstrapTest {
 								} catch (ResourceLimitException e) {
 									//e.printStackTrace();
 									//logger.error("Resource Limited", e);
-									Thread.yield();
+									//Thread.yield();
+									try {
+										Thread.sleep(10);
+									} catch (InterruptedException ex) {
+										ex.printStackTrace();
+										Thread.currentThread().interrupt();
+										break;
+									}
 								} catch (TaskException e) {
 									e.printStackTrace();
 									logger.error("TaskException", e);
@@ -504,7 +672,7 @@ public class BootstrapTest {
 						}
 						
 						try {
-							Thread.sleep(125);
+							Thread.sleep(100);
 						} catch (InterruptedException e) {
 							e.printStackTrace();
 							Thread.currentThread().interrupt();
@@ -518,11 +686,11 @@ public class BootstrapTest {
 					e.printStackTrace();
 					Thread.currentThread().interrupt();
 				}
-				System.out.println(String.format("MaxDomain TPS: %f", (120 * 32) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
+				System.out.println(String.format("MaxDomain TPS: %f", (120 * 40) / ((System.currentTimeMillis() - start) / (1000 + 0.0D))));
 				threadLatch.countDown();
 			}
 			
-		});
+		}, "Max-Domain-Send-Thread");
 		
 		reservedDomainSendThread.start();
 		maxDomainSendThread.start();
